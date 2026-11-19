@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LogWatch HDFS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f4f3ef; --surface:#fcfcfb; --surface-2:#f0efec; --surface-3:#e8e7e2;
+  --border:#e1e0da; --border-strong:#cfcec7;
+  --text:#0b0b0b; --text-2:#52514e; --text-3:#7a7975;
+  --grid:#e6e5e0; --axis:#bdbcb5;
+  --normal:#2a78d6; --anom:#eb6834;
+  --accent:#6250d6; --accent-ink:#4a3aa7; --accent-soft:#ebe8fb;
+  --good:#0ca30c; --good-ink:#006300; --crit:#d03b3b; --crit-ink:#b02a2a;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#111110; --surface:#1a1a19; --surface-2:#232321; --surface-3:#2c2c2a;
+    --border:#2e2e2b; --border-strong:#3e3e3a;
+    --text:#f0efec; --text-2:#c3c2b7; --text-3:#8d8c84;
+    --grid:#282826; --axis:#4a4a46;
+    --normal:#3987e5; --anom:#d95926;
+    --accent:#9085e9; --accent-ink:#b3abf2; --accent-soft:#26233c;
+    --good:#0ca30c; --good-ink:#4cc94c; --crit:#e66767; --crit-ink:#f08a8a;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#111110; --surface:#1a1a19; --surface-2:#232321; --surface-3:#2c2c2a;
+  --border:#2e2e2b; --border-strong:#3e3e3a;
+  --text:#f0efec; --text-2:#c3c2b7; --text-3:#8d8c84;
+  --grid:#282826; --axis:#4a4a46;
+  --normal:#3987e5; --anom:#d95926;
+  --accent:#9085e9; --accent-ink:#b3abf2; --accent-soft:#26233c;
+  --good:#0ca30c; --good-ink:#4cc94c; --crit:#e66767; --crit-ink:#f08a8a;
+  --shadow:none;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.5 'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+button{font-family:inherit}
+
+/* header */
+header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0 14px}
+.brand{display:flex;gap:12px;align-items:center;min-width:0}
+.brand h1{font-size:17px;margin:0;font-weight:600;letter-spacing:-.01em}
+.brand p{margin:0;color:var(--text-2);font-size:12.5px}
+.logo{width:36px;height:36px;flex:none;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center}
+.hright{display:flex;gap:10px;align-items:center;flex:none}
+.pill{font:500 10.5px/1 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.07em;padding:7px 9px;border:1px dashed var(--border-strong);border-radius:6px;color:var(--text-2);white-space:nowrap}
+.iconbtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);cursor:pointer;display:grid;place-items:center}
+.iconbtn:hover{color:var(--text)}
+
+nav.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--border);scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{appearance:none;background:none;border:0;padding:10px 14px;font:500 13.5px 'IBM Plex Sans',sans-serif;color:var(--text-2);border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
+nav.tabs button:hover{color:var(--text)}
+nav.tabs button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent)}
+nav.tabs .num{font:500 10.5px 'IBM Plex Mono',monospace;color:var(--text-3);margin-right:6px}
+
+.controls{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:10px 0;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center}
+.ctl{display:flex;align-items:center;gap:8px}
+.ctl > label{font-size:12px;color:var(--text-3)}
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:5px 10px;border-radius:6px;font-weight:500;font-size:12.5px;color:var(--text-2);cursor:pointer;white-space:nowrap}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.10)}
+.thrchip{margin-left:auto;background:var(--accent-soft);border-radius:8px;padding:5px 10px}
+.thrchip span{font-weight:600;color:var(--accent-ink)}
+
+main{padding:20px 0 40px}
+.view{display:grid;gap:16px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:14.5px;margin:0 0 2px;font-weight:600;letter-spacing:-.005em}
+.sub{color:var(--text-2);font-size:12.5px;margin:0 0 14px;max-width:70ch}
+.cardhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.eyebrow{font:500 10.5px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px}
+.grid{display:grid;gap:16px;min-width:0}
+.grid > *{min-width:0}
+.g2{grid-template-columns:1fr 1fr}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g6{grid-template-columns:repeat(6,1fr)}
+.g75{grid-template-columns:7fr 5fr}
+.g57{grid-template-columns:5fr 7fr}
+@media (max-width:900px){.g2,.g75,.g57{grid-template-columns:1fr}.g4{grid-template-columns:1fr 1fr}.g6{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:520px){.g6{grid-template-columns:1fr 1fr}.controls{position:static}.thrchip{margin-left:0}.pill{display:none}}
+
+/* hero */
+.lede{font-size:21px;line-height:1.45;letter-spacing:-.01em;margin:0 0 20px;max-width:46ch;font-weight:400}
+.lede b{font-weight:600}
+.hl{color:var(--accent-ink)}
+.stat{border-top:1px solid var(--border);padding-top:12px}
+.stat .k{font-size:12px;color:var(--text-2)}
+.stat .v{font:600 26px/1.15 'IBM Plex Mono',monospace;letter-spacing:-.03em;margin:4px 0 2px}
+.stat .n{font-size:11.5px;color:var(--text-3)}
+
+/* pipeline */
+.pipe{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;counter-reset:s}
+.pipe li{position:relative;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px 12px 13px}
+.pipe li:not(:last-child)::after{content:"";position:absolute;right:-8px;top:50%;width:6px;height:6px;border-top:1.5px solid var(--text-3);border-right:1.5px solid var(--text-3);transform:translateY(-50%) rotate(45deg)}
+.pipe .s{font:500 10.5px 'IBM Plex Mono',monospace;color:var(--text-3)}
+.pipe .t{font-weight:600;font-size:13px;margin:2px 0}
+.pipe .d{font:12px 'IBM Plex Mono',monospace;color:var(--text-2)}
+.pipe li.last{background:var(--accent-soft);border-color:transparent}
+@media (max-width:900px){.pipe{grid-template-columns:1fr}.pipe li:not(:last-child)::after{right:auto;left:22px;top:auto;bottom:-8px;transform:rotate(135deg)}}
+
+/* tables */
+.tblwrap{overflow-x:auto;margin:0 -4px}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{font-weight:500;font-size:11.5px;color:var(--text-3);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.tbl td.num,.tbl th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+.tbl tr.click{cursor:pointer}
+.tbl tr.click:hover td{background:var(--surface-2)}
+.tbl tr.sel td{background:var(--accent-soft)}
+.tbl tr.muted td{color:var(--text-3)}
+.tbl tr.divider td{padding:0;border:0}
+.divline{display:flex;align-items:center;gap:8px;padding:6px 8px;font:500 11px 'IBM Plex Mono',monospace;color:var(--accent-ink)}
+.divline::before,.divline::after{content:"";flex:1;border-top:1.5px dashed var(--accent)}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--text-2);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.legend i.ln{height:2px;width:16px;border-radius:2px;vertical-align:3px}
+
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.badge::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.badge.n{--c:var(--normal)}
+.badge.a{--c:var(--anom)}
+.res{font:500 11.5px 'IBM Plex Mono',monospace;white-space:nowrap}
+.res.ok{color:var(--good-ink)}
+.res.bad{color:var(--crit-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.ev{font:500 11px 'IBM Plex Mono',monospace;background:var(--surface-2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;white-space:nowrap}
+.pbar{display:flex;align-items:center;gap:8px;min-width:120px}
+.pbar .tr{flex:1;height:6px;border-radius:3px;background:var(--surface-3);position:relative;overflow:hidden}
+.pbar .fl{position:absolute;inset:0 auto 0 0;border-radius:3px;background:var(--accent)}
+.pbar .vv{font:500 12px 'IBM Plex Mono',monospace;width:42px;text-align:right}
+
+/* confusion matrix */
+.cm{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px;font-size:12px}
+.cm .h{color:var(--text-3);padding:4px 6px;font-size:11.5px;display:flex;align-items:flex-end}
+.cm .rh{color:var(--text-3);padding:6px;font-size:11.5px;display:flex;align-items:center;writing-mode:horizontal-tb}
+.cm .c{border-radius:8px;padding:12px;background:var(--surface-2);border:1px solid var(--border)}
+.cm .c.err{background:transparent;border-style:dashed;border-color:var(--border-strong)}
+.cm .c .v{font:600 22px/1.1 'IBM Plex Mono',monospace;letter-spacing:-.02em}
+.cm .c .l{color:var(--text-2);margin-top:4px}
+
+/* threshold */
+.thr-top{display:grid;grid-template-columns:1fr auto;gap:12px 24px;align-items:end}
+.thr-ctl{display:flex;align-items:center;gap:14px;min-width:min(420px,100%)}
+.thr-ctl output{font:600 26px 'IBM Plex Mono',monospace;letter-spacing:-.03em;color:var(--accent-ink);min-width:80px;text-align:right}
+.quick{display:flex;gap:6px;flex-wrap:wrap;grid-column:1/-1}
+.chip{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:500;color:var(--text-2);cursor:pointer}
+.chip:hover{color:var(--text);border-color:var(--border-strong)}
+.chip.on{background:var(--accent-soft);border-color:transparent;color:var(--accent-ink)}
+@media (max-width:700px){.thr-top{grid-template-columns:1fr}}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px;background:transparent;cursor:pointer;accent-color:var(--accent)}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(to right,var(--accent) var(--p,50%),var(--surface-3) var(--p,50%))}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--surface-3)}
+input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--accent)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);margin-top:-7px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+.kpis{margin-top:16px}
+.kpi{background:var(--surface-2);border-radius:10px;padding:10px 12px}
+.kpi .k{font-size:11.5px;color:var(--text-2)}
+.kpi .v{font:600 20px/1.2 'IBM Plex Mono',monospace;letter-spacing:-.02em;margin-top:2px}
+.story{margin:14px 0 0;color:var(--text-2);font-size:13.5px;max-width:80ch}
+.story b{color:var(--text);font-weight:600}
+
+/* simulator */
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.sl{padding:7px 0;border-top:1px solid var(--border)}
+.sl-h{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.sl-h .sl-l{color:var(--text-2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sl-h output{font:600 14px 'IBM Plex Mono',monospace;width:22px;text-align:right}
+.sl-h .ty{font:11px 'IBM Plex Mono',monospace;color:var(--text-3)}
+.bigprob{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:6px 0 4px}
+.bigprob .v{font:600 52px/1 'IBM Plex Mono',monospace;letter-spacing:-.04em}
+.verdict{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;font-weight:600;font-size:13px;background:var(--surface-2)}
+.verdict::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--c)}
+.verdict.a{--c:var(--anom)}
+.verdict.n{--c:var(--normal)}
+.callout{margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--accent-soft);font-size:13px;color:var(--text)}
+.callout b{color:var(--accent-ink)}
+.mrow{display:grid;grid-template-columns:130px 1fr 50px;gap:10px;align-items:center;padding:5px 0;font-size:12.5px}
+.mrow .tr{height:8px;border-radius:4px;background:var(--surface-3);position:relative}
+.mrow .fl{position:absolute;inset:0 auto 0 0;border-radius:4px;background:var(--accent)}
+.mrow .tk{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--text);border-radius:1px}
+.mrow .vv{font:500 12px 'IBM Plex Mono',monospace;text-align:right}
+.mrow.sel{font-weight:600}
+
+/* datos */
+.prop{display:flex;gap:2px;height:28px;margin:6px 0 10px}
+.prop div{border-radius:5px}
+.dict td:first-child{font-family:'IBM Plex Mono',monospace;font-weight:600}
+.dict .tpl{font:11.5px 'IBM Plex Mono',monospace;color:var(--text-2)}
+
+svg{display:block;overflow:visible}
+svg text{font-family:'IBM Plex Sans',sans-serif;font-size:11.5px;fill:var(--text-2)}
+svg text.mono{font-family:'IBM Plex Mono',monospace}
+svg text.ink{fill:var(--text)}
+svg text.muted{fill:var(--text-3)}
+
+#tip{position:fixed;z-index:50;pointer-events:none;background:var(--text);color:var(--bg);font-size:12px;line-height:1.45;padding:7px 10px;border-radius:7px;max-width:260px;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+#tip b{font-weight:600}
+footer{color:var(--text-3);font-size:12px;padding:0 0 32px}
+.note{font-size:11.5px;color:var(--text-3);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 20 20"><g stroke="var(--text-3)" stroke-width="2" stroke-linecap="round"><line x1="3" y1="4" x2="13" y2="4"/><line x1="3" y1="8" x2="10" y2="8"/><line x1="3" y1="16" x2="12" y2="16"/></g><line x1="3" y1="12" x2="9" y2="12" stroke="var(--anom)" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="12" r="2.6" fill="var(--anom)"/></svg>
+      </div>
+      <div><h1>LogWatch</h1><p>Detección de anomalías en logs de HDFS · Machine Learning, UTEC 2026</p></div>
+    </div>
+    <div class="hright">
+      <span class="pill">Mockup · datos simulados</span>
+      <button class="iconbtn" data-act="theme" aria-label="Cambiar tema claro/oscuro" data-tip="Tema claro / oscuro">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11a5.5 5.5 0 0 0 0-11z" fill="currentColor" stroke="none"/></svg>
+      </button>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs" role="tablist"></nav>
+  <div class="controls" id="controls"></div>
+  <main id="main"></main>
+  <footer>Mockup de interfaz para el proyecto final. Todos los resultados de modelos son <b>simulados</b> para ilustrar el diseño; solo la pestaña <i>Datos</i> usa cifras reales del Avance 1.</footer>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s);
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const pct = (x, d = 1) => (x * 100).toFixed(d) + '%';
+const f3 = x => x.toFixed(3);
+const sig = z => 1 / (1 + Math.exp(-z));
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(u===0)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r())}
+function hashStr(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+
+/* ---------- datos simulados ---------- */
+const N_TEST = 115013, A_TEST = 3368, N_NORM = N_TEST - A_TEST;
+const MODELS = [
+  {id:'dt', name:'Árbol de decisión',   short:'Árbol',     a:[4.6,2.3], n:[-6.4,2.0], hide:.012, sim:{b:-3.4,k:1.0},  tree:true},
+  {id:'rf', name:'Random Forest',       short:'RF',        a:[5.6,2.0], n:[-7.4,1.9], hide:.008, sim:{b:-3.5,k:1.05}, tree:true},
+  {id:'lr', name:'Regresión logística', short:'Reg. log.', a:[3.4,2.1], n:[-5.6,1.8], hide:.010, sim:{b:-3.0,k:.85},  tree:false},
+  {id:'nb', name:'Naive Bayes',         short:'NB',        a:[3.6,2.6], n:[-5.0,2.0], hide:.006, sim:{b:-2.4,k:.7},   tree:false},
+];
+const REP = {count:{a:0,n:0,label:'Conteo'}, tfidf:{a:.35,n:-.25,label:'TF-IDF'}};
+const BAL = {cw:{a:0,n:0,label:'class_weight'}, smote:{a:.5,n:.35,label:'SMOTE'}};
+const NB = 200;
+const cache = {};
+
+function getDist(id, rep = S.rep, bal = S.bal){
+  const key = id + '|' + rep + '|' + bal;
+  if (cache[key]) return cache[key];
+  const m = MODELS.find(x => x.id === id), r = mulberry32(hashStr(key));
+  const damp = m.tree ? .4 : 1;
+  const aMu = m.a[0] + REP[rep].a * damp + BAL[bal].a;
+  const nMu = m.n[0] + REP[rep].n * damp + BAL[bal].n;
+  const hA = new Float64Array(NB), hN = new Float64Array(NB);
+  const bin = s => Math.min(NB - 1, Math.floor(s * NB));
+  for (let i = 0; i < A_TEST; i++){
+    const hidden = r() < m.hide; // anomalías con conteos idénticos a un bloque normal
+    hA[bin(sig(hidden ? nMu + m.n[1] * gauss(r) : aMu + m.a[1] * gauss(r)))]++;
+  }
+  for (let i = 0; i < N_NORM; i++) hN[bin(sig(nMu + m.n[1] * gauss(r)))]++;
+  const cA = new Float64Array(NB + 1), cN = new Float64Array(NB + 1);
+  for (let i = NB - 1; i >= 0; i--){ cA[i] = cA[i + 1] + hA[i]; cN[i] = cN[i + 1] + hN[i]; }
+  return cache[key] = {hA, hN, cA, cN};
+}
+function metricsAt(d, t){
+  const b = Math.max(0, Math.min(NB, Math.round(t * NB)));
+  const TP = d.cA[b], FP = d.cN[b], FN = A_TEST - TP, TN = N_NORM - FP;
+  const P = TP + FP ? TP / (TP + FP) : 1, R = TP / A_TEST, F1 = P + R ? 2 * P * R / (P + R) : 0;
+  return {TP, FP, FN, TN, P, R, F1, acc:(TP + TN) / N_TEST, flag:TP + FP};
+}
+
+/* eventos y simulador */
+const EV = ['E5','E9','E11','E26','E22','E3','E7','E13'];
+const EV_INFO = {
+  E5:{lbl:'Recepción iniciada', typ:3, tpl:'Receiving block * src: * dest: *', desc:'Un DataNode inicia la recepción del bloque; una vez por réplica.'},
+  E9:{lbl:'Recepción confirmada', typ:3, tpl:'Received block * of size * from *', desc:'Un DataNode confirma la recepción completa y su tamaño.'},
+  E11:{lbl:'PacketResponder termina', typ:3, tpl:'PacketResponder * for block * terminating', desc:'Cierre normal del hilo que confirma paquetes en el pipeline.'},
+  E26:{lbl:'Réplica registrada', typ:3, tpl:'BLOCK* NameSystem.addStoredBlock: blockMap updated: * is added to * size *', desc:'El NameNode registra que una réplica quedó almacenada.'},
+  E22:{lbl:'Bloque asignado', typ:1, tpl:'BLOCK* NameSystem.allocateBlock: *', desc:'El NameNode asigna un nuevo bloque (inicio del ciclo de vida).'},
+  E3:{lbl:'Bloque servido (lectura)', typ:0, tpl:'* Served block * to *', desc:'Un DataNode envía el bloque a un cliente.'},
+  E7:{lbl:'Excepción en writeBlock', typ:0, tpl:'writeBlock * received exception *', desc:'Se produce una excepción durante la escritura.'},
+  E13:{lbl:'Paquete vacío recibido', typ:0, tpl:'Receiving empty packet for block *', desc:'Un DataNode recibe un paquete vacío para el bloque.'},
+};
+function contrib(v){
+  return {
+    E9:1.7*Math.max(0,3-v.E9), E11:1.7*Math.max(0,3-v.E11), E26:1.5*Math.max(0,3-v.E26),
+    E5:1.4*Math.abs(v.E5-3), E22:2.2*Math.abs(v.E22-1), E3:.3*v.E3, E7:3.0*v.E7, E13:2.0*v.E13,
+  };
+}
+function simScore(id, v){
+  const m = MODELS.find(x => x.id === id);
+  const d = Object.values(contrib(v)).reduce((a, b) => a + b, 0);
+  const dd = 6 * Math.log1p(d / 6); // comprime desviaciones grandes para que las probabilidades no saturen
+  const adj = (S.bal === 'smote' ? .4 : 0) + (S.rep === 'tfidf' && !m.tree ? .2 : 0);
+  return sig(m.sim.b + adj + m.sim.k * dd);
+}
+const NORMAL_V = {E5:3,E9:3,E11:3,E26:3,E22:1,E3:0,E7:0,E13:0};
+const PRESETS = [
+  {id:'normal', name:'Bloque normal típico', v:{...NORMAL_V}},
+  {id:'b3', name:'B3 del informe', v:{...NORMAL_V}},
+  {id:'b4', name:'B4 · replicación incompleta', v:{E5:2,E9:0,E11:0,E26:0,E22:1,E3:0,E7:0,E13:0}},
+  {id:'exc', name:'Excepción de escritura', v:{E5:3,E9:2,E11:2,E26:2,E22:1,E3:0,E7:1,E13:0}},
+  {id:'empty', name:'Paquete vacío', v:{E5:3,E9:2,E11:3,E26:3,E22:1,E3:0,E7:0,E13:1}},
+];
+
+/* bandeja de triage: bloques simulados */
+const POOL = (() => {
+  const r = mulberry32(7), ri = (a, b) => a + Math.floor(r() * (b - a + 1));
+  const base = () => ({...NORMAL_V, E3:ri(0,2)});
+  const T = [
+    [26,'Anomaly','Replicación incompleta', () => { const k = ri(0,2); return {...base(), E5:ri(1,2), E9:k, E11:ri(0,k), E26:ri(0,k)}; }],
+    [12,'Anomaly','Excepción de escritura', () => ({...base(), E7:ri(1,2), E9:2, E11:ri(1,2), E26:2})],
+    [7,'Anomaly','Paquete vacío', () => ({...base(), E13:ri(1,2), E9:ri(2,3)})],
+    [4,'Anomaly','Indistinguible (tipo B3)', () => base()],
+    [6,'Normal','Paquete vacío benigno', () => ({...base(), E5:4, E9:4, E11:4, E26:4, E13:ri(1,2)})],
+    [8,'Normal','Réplica extra', () => ({...base(), E5:4, E9:4, E11:4, E26:4})],
+    [8,'Normal','Lecturas intensivas', () => ({...base(), E3:ri(4,8)})],
+    [14,'Normal','Ciclo normal', () => base()],
+  ];
+  const out = [];
+  T.forEach(([n, label, kind, gen]) => { for (let i = 0; i < n; i++){
+    let id = String(1 + Math.floor(r() * 9)); while (id.length < 19) id += Math.floor(r() * 10);
+    out.push({id:'blk_' + (r() < .5 ? '-' : '') + id, label, kind, v:gen()});
+  }});
+  return out;
+})();
+
+/* ---------- estado ---------- */
+const S = {tab:'resumen', model:'rf', rep:'count', bal:'cw', t:.5, metric:'F1', tri:'all', sel:null, sim:{...NORMAL_V}, preset:'normal'};
+const curModel = () => MODELS.find(m => m.id === S.model);
+const TABS = [['resumen','Resumen'],['modelos','Modelos'],['umbral','Umbral'],['triage','Triage'],['simulador','Simulador'],['datos','Datos']];
+const METRIC_LBL = {F1:'F1-score', P:'Precisión', R:'Recall', acc:'Accuracy'};
+
+/* ---------- cabecera y controles ---------- */
+function renderTabs(){
+  $('#tabs').innerHTML = TABS.map(([id, l], i) =>
+    `<button role="tab" data-act="tab:${id}" aria-selected="${S.tab === id}"><span class="num">0${i + 1}</span>${l}</button>`).join('');
+}
+function seg(name, opts, cur){
+  return `<div class="seg">${opts.map(([v, l]) => `<button data-act="${name}:${v}" aria-pressed="${cur === v}">${l}</button>`).join('')}</div>`;
+}
+function renderControls(){
+  $('#controls').innerHTML = `
+    <div class="ctl"><label>Modelo</label>${seg('model', MODELS.map(m => [m.id, m.short]), S.model)}</div>
+    <div class="ctl"><label>Representación</label>${seg('rep', [['count','Conteo'],['tfidf','TF-IDF']], S.rep)}</div>
+    <div class="ctl"><label>Desbalance</label>${seg('bal', [['cw','class_weight'],['smote','SMOTE']], S.bal)}</div>
+    <div class="ctl thrchip" data-tip="Ajústalo en la pestaña <b>Umbral</b>"><label>Umbral</label><span class="mono">${S.t.toFixed(3)}</span></div>`;
+}
+
+/* ---------- vista: resumen ---------- */
+function vResumen(el){
+  const M = curModel(), m = metricsAt(getDist(S.model), S.t);
+  const rank = MODELS.map(x => ({x, m:metricsAt(getDist(x.id), S.t)})).sort((a, b) => b.m.F1 - a.m.F1);
+  el.innerHTML = `
+  <section class="card">
+    <div class="eyebrow">Con la configuración actual</div>
+    <p class="lede">De <b>${fmt(N_TEST)}</b> bloques del conjunto de prueba, <b>${M.name}</b> marca <b class="hl">${fmt(m.flag)}</b> para revisión, solo el ${pct(m.flag / N_TEST)} del total, y atrapa el <b class="hl">${pct(m.R)}</b> de las anomalías reales.</p>
+    <div class="grid g4">
+      <div class="stat"><div class="k">Bloques en el dataset</div><div class="v">575,061</div><div class="n">11.2 M líneas de log · HDFS_v1</div></div>
+      <div class="stat"><div class="k">Tasa de anomalías</div><div class="v">2.93%</div><div class="n">16,838 bloques etiquetados</div></div>
+      <div class="stat"><div class="k">F1 de ${M.short}</div><div class="v">${f3(m.F1)}</div><div class="n">P ${f3(m.P)} · R ${f3(m.R)}</div></div>
+      <div class="stat"><div class="k">Revisión manual evitada</div><div class="v">${pct(1 - m.flag / N_TEST)}</div><div class="n">frente a revisar todos los bloques</div></div>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Pipeline</h2><p class="sub">De texto sin estructura a una lista priorizada de bloques sospechosos.</p>
+    <ol class="pipe">
+      <li><div class="s">01</div><div class="t">Logs en bruto</div><div class="d">11,175,629 líneas</div></li>
+      <li><div class="s">02</div><div class="t">Parsing con Drain</div><div class="d">29 plantillas</div></li>
+      <li><div class="s">03</div><div class="t">Matriz de conteo</div><div class="d">575,061 × 29</div></li>
+      <li><div class="s">04</div><div class="t">Entrenamiento</div><div class="d">4 modelos · CV 5-fold</div></li>
+      <li class="last"><div class="s">05</div><div class="t">Triage</div><div class="d">${fmt(m.flag)} alertas</div></li>
+    </ol>
+  </section>
+  <section class="grid g2">
+    <div class="card">
+      <h2>Ranking por F1</h2><p class="sub">Clase anómala, umbral ${S.t.toFixed(3)}. Haz clic para seleccionar un modelo.</p>
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>#</th><th>Modelo</th><th class="num">Precisión</th><th class="num">Recall</th><th class="num">F1</th></tr></thead>
+        <tbody>${rank.map((r, i) => `<tr class="click ${r.x.id === S.model ? 'sel' : ''}" data-act="model:${r.x.id}">
+          <td class="mono">${i + 1}</td><td>${r.x.name}</td><td class="num">${f3(r.m.P)}</td><td class="num">${f3(r.m.R)}</td><td class="num"><b>${f3(r.m.F1)}</b></td></tr>`).join('')}</tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <h2>Qué puedes explorar</h2><p class="sub">Cada pestaña responde una pregunta distinta sobre el modelo.</p>
+      <div class="tblwrap"><table class="tbl"><tbody>
+        ${[['modelos','¿Qué modelo funciona mejor y con qué variante?'],['umbral','¿Cuántas alertas acepto a cambio de cuántas anomalías atrapadas?'],['triage','¿Qué bloques revisaría primero el equipo de operaciones?'],['simulador','¿Cómo reacciona el modelo si cambio los eventos de un bloque?'],['datos','¿Cómo son los datos y qué eventos importan?']]
+          .map(([t, q]) => `<tr class="click" data-act="tab:${t}"><td style="width:96px"><span class="ev">${TABS.find(x => x[0] === t)[1]}</span></td><td>${q}</td><td class="muted" style="color:var(--text-3)">→</td></tr>`).join('')}
+      </tbody></table></div>
+    </div>
+  </section>`;
+}
+
+/* ---------- vista: modelos ---------- */
+function dotSVG(W){
+  const key = S.metric;
+  const vals = MODELS.map(x => ({x, v:metricsAt(getDist(x.id), S.t)[key]}));
+  const lo = Math.min(.8, Math.floor((Math.min(...vals.map(a => a.v)) - .02) * 20) / 20), hi = 1;
+  const ml = Math.min(150, W * .36), mr = 56, mt = 4, rh = 40, n = vals.length, H = mt + rh * n + 26;
+  const iw = W - ml - mr, x = v => ml + (v - lo) / (hi - lo) * iw;
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${METRIC_LBL[key]} por modelo">`;
+  for (let t = lo; t <= hi + 1e-9; t += .05){
+    s += `<line x1="${x(t)}" x2="${x(t)}" y1="${mt}" y2="${mt + rh * n}" stroke="var(--grid)"/>
+          <text x="${x(t)}" y="${mt + rh * n + 18}" text-anchor="middle" class="mono muted">${t.toFixed(2)}</text>`;
+  }
+  vals.forEach((a, i) => {
+    const cy = mt + rh * i + rh / 2, sel = a.x.id === S.model;
+    s += `<g data-act="model:${a.x.id}" style="cursor:pointer" data-tip="<b>${a.x.name}</b><br>${METRIC_LBL[key]}: ${f3(a.v)}">
+      <rect x="0" y="${cy - rh / 2 + 2}" width="${W}" height="${rh - 4}" rx="7" fill="${sel ? 'var(--accent-soft)' : 'transparent'}"/>
+      <text x="10" y="${cy + 4}" class="ink" style="font-size:12.5px;font-weight:${sel ? 600 : 400}">${W < 420 ? a.x.short : a.x.name}</text>
+      <circle cx="${x(a.v)}" cy="${cy}" r="${sel ? 7 : 6}" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+      <text x="${W - mr + 12}" y="${cy + 4}" class="mono ink" style="font-weight:${sel ? 600 : 400}">${f3(a.v)}</text></g>`;
+  });
+  return s + `</svg><div class="note">Eje desde ${lo.toFixed(2)} para distinguir diferencias pequeñas.</div>`;
+}
+function vModelos(el){
+  const M = curModel(), m = metricsAt(getDist(S.model), S.t);
+  const all = MODELS.map(x => ({x, m:metricsAt(getDist(x.id), S.t)}));
+  const variants = [['count','cw'],['count','smote'],['tfidf','cw'],['tfidf','smote']].map(([r, b]) => ({r, b, f:metricsAt(getDist(S.model, r, b), S.t).F1}));
+  const best = Math.max(...variants.map(v => v.f));
+  el.innerHTML = `
+  <div class="grid g75">
+    <div class="card">
+      <div class="cardhead"><div><h2>Comparación de modelos</h2><p class="sub">Métricas de la clase anómala en el conjunto de prueba (umbral ${S.t.toFixed(3)}). Clic en un modelo para seleccionarlo.</p></div>
+        ${seg('metric', [['F1','F1'],['P','Precisión'],['R','Recall'],['acc','Accuracy']], S.metric)}</div>
+      <div id="dot"></div>
+      <div class="tblwrap" style="margin-top:14px"><table class="tbl">
+        <thead><tr><th>Modelo</th><th class="num">Accuracy</th><th class="num">Precisión</th><th class="num">Recall</th><th class="num">F1</th></tr></thead>
+        <tbody>
+          ${all.map(r => `<tr class="click ${r.x.id === S.model ? 'sel' : ''}" data-act="model:${r.x.id}"><td>${r.x.name}</td><td class="num">${f3(r.m.acc)}</td><td class="num">${f3(r.m.P)}</td><td class="num">${f3(r.m.R)}</td><td class="num"><b>${f3(r.m.F1)}</b></td></tr>`).join('')}
+          <tr class="muted" data-tip="Línea base: predecir siempre <b>Normal</b>. Alto accuracy, cero anomalías detectadas."><td>Siempre «Normal»</td><td class="num">${f3(N_NORM / N_TEST)}</td><td class="num">—</td><td class="num">0.000</td><td class="num">0.000</td></tr>
+        </tbody></table></div>
+      <div class="note">La última fila muestra por qué el accuracy engaña: casi 0.971 sin detectar una sola anomalía.</div>
+    </div>
+    <div class="grid" style="align-content:start">
+      <div class="card">
+        <h2>Matriz de confusión</h2><p class="sub">${M.name} · ${REP[S.rep].label} · ${BAL[S.bal].label}</p>
+        <div class="cm">
+          <div></div><div class="h">Predice Normal</div><div class="h">Predice Anomalía</div>
+          <div class="rh">Real<br>Normal</div>
+          <div class="c"><div class="v">${fmt(m.TN)}</div><div class="l">Verdaderos negativos</div></div>
+          <div class="c err"><div class="v">${fmt(m.FP)}</div><div class="l">Falsas alarmas</div></div>
+          <div class="rh">Real<br>Anomalía</div>
+          <div class="c err"><div class="v">${fmt(m.FN)}</div><div class="l">No detectadas</div></div>
+          <div class="c"><div class="v">${fmt(m.TP)}</div><div class="l">Anomalías atrapadas</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>F1 por variante</h2><p class="sub">${M.name}: las cuatro combinaciones del experimento. Clic para aplicar.</p>
+        <table class="tbl">
+          <thead><tr><th></th><th class="num">class_weight</th><th class="num">SMOTE</th></tr></thead>
+          <tbody>${['count','tfidf'].map(r => `<tr><td>${REP[r].label}</td>${['cw','smote'].map(b => { const v = variants.find(z => z.r === r && z.b === b); const on = S.rep === r && S.bal === b;
+            return `<td class="num" style="cursor:pointer;${on ? 'background:var(--accent-soft);' : ''}" data-act="variant:${r}-${b}">${v.f === best ? '<b>' + f3(v.f) + '</b> ★' : f3(v.f)}</td>`; }).join('')}</tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+  $('#dot').innerHTML = dotSVG($('#dot').clientWidth);
+}
+
+/* ---------- vista: umbral ---------- */
+function histSVG(d, t, W){
+  const bins = 50, k = NB / bins, ml = 44, mr = 10, ph = 108, gap = 40, mt = 22, mb = 34;
+  const H = mt + ph * 2 + gap + mb, iw = W - ml - mr, bw = iw / bins;
+  const agg = h => { const o = []; for (let i = 0; i < bins; i++){ let s = 0; for (let j = 0; j < k; j++) s += h[i * k + j]; o.push(s); } return o; };
+  const A = agg(d.hA), N = agg(d.hN);
+  const lmin = Math.log10(.6), lmax = Math.log10(Math.max(...N, ...A)) + .15;
+  const y = (c, top) => top + ph - (c > 0 ? (Math.log10(c) - lmin) / (lmax - lmin) * ph : 0);
+  const tick = p => ['1','10','100','1k','10k','100k','1M'][p];
+  const tx = ml + t * iw;
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Histograma de probabilidades por clase">`;
+  [{name:'Normales', n:N_NORM, data:N, top:mt, c:'var(--normal)', on:'falsas alarmas'},
+   {name:'Anomalías', n:A_TEST, data:A, top:mt + ph + gap, c:'var(--anom)', on:'atrapadas'}].forEach(p => {
+    s += `<text x="${ml}" y="${p.top - 9}" class="ink" style="font-weight:600">${p.name} <tspan class="mono muted" style="font-weight:400">${fmt(p.n)} bloques</tspan></text>`;
+    for (let e = 0; e <= lmax; e += (lmax > 4 ? 2 : 1)){
+      const yy = y(10 ** e, p.top);
+      s += `<line x1="${ml}" x2="${W - mr}" y1="${yy}" y2="${yy}" stroke="var(--grid)"/><text x="${ml - 8}" y="${yy + 4}" text-anchor="end" class="mono muted">${tick(e)}</text>`;
+    }
+    s += `<line x1="${ml}" x2="${W - mr}" y1="${p.top + ph}" y2="${p.top + ph}" stroke="var(--axis)"/>`;
+    p.data.forEach((c, i) => {
+      const x0 = ml + i * bw, flagged = i / bins >= t - 1e-9;
+      if (c > 0){
+        const yy = y(c, p.top), h = p.top + ph - yy;
+        s += `<rect x="${x0 + 1}" y="${yy}" width="${Math.max(1, bw - 2)}" height="${h}" rx="${Math.min(2, bw / 4)}" fill="${p.c}" opacity="${flagged ? 1 : .32}"/>`;
+      }
+      s += `<rect x="${x0}" y="${p.top}" width="${bw}" height="${ph}" fill="transparent" data-tip="<b>${p.name}</b> · prob. ${(i / bins).toFixed(2)}–${((i + 1) / bins).toFixed(2)}<br>${fmt(c)} bloques · ${flagged ? (p.name === 'Normales' ? 'marcados (falsas alarmas)' : 'marcados (atrapadas)') : (p.name === 'Normales' ? 'no marcados' : 'no detectadas')}"/>`;
+    });
+  });
+  const bot = mt + ph * 2 + gap;
+  [0, .25, .5, .75, 1].forEach(v => s += `<text x="${ml + v * iw}" y="${bot + 16}" text-anchor="middle" class="mono muted">${v}</text>`);
+  s += `<text x="${ml + iw / 2}" y="${bot + 31}" text-anchor="middle" class="muted">probabilidad de anomalía según el modelo</text>`;
+  s += `<line x1="${tx}" x2="${tx}" y1="${mt - 4}" y2="${bot}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4 3"/>`;
+  const right = t < .7;
+  s += `<text x="${tx + (right ? 7 : -7)}" y="${mt + ph + 15}" text-anchor="${right ? 'start' : 'end'}" class="mono" style="fill:var(--accent-ink);font-weight:600">umbral ${t.toFixed(3)}${right && W > 480 ? ' → marcados' : ''}</text>`;
+  return s + `</svg><div class="note">Eje vertical en escala logarítmica: hay 33 veces más bloques normales que anómalos.</div>`;
+}
+function prPoints(id){
+  const d = getDist(id), pts = [];
+  for (let b = 1; b < NB; b++){ const m = metricsAt(d, b / NB); pts.push({t:b / NB, R:m.R, P:m.P}); }
+  return pts;
+}
+function prSVG(W){
+  const H = Math.round(Math.min(330, Math.max(240, W * .8))), ml = 46, mr = 14, mt = 10, mb = 42;
+  const iw = W - ml - mr, ih = H - mt - mb, lo = .5;
+  const x = v => ml + (Math.max(lo, v) - lo) / (1 - lo) * iw, y = v => mt + ih - (Math.max(lo, v) - lo) / (1 - lo) * ih;
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Curva precisión-recall">`;
+  [.5, .6, .7, .8, .9, 1].forEach(v => {
+    s += `<line x1="${ml}" x2="${W - mr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${ml - 8}" y="${y(v) + 4}" text-anchor="end" class="mono muted">${v.toFixed(1)}</text>`;
+    s += `<text x="${x(v)}" y="${mt + ih + 16}" text-anchor="middle" class="mono muted">${v.toFixed(1)}</text>`;
+  });
+  s += `<line x1="${ml}" x2="${W - mr}" y1="${mt + ih}" y2="${mt + ih}" stroke="var(--axis)"/>`;
+  s += `<text x="${ml + iw / 2}" y="${H - 6}" text-anchor="middle" class="muted">Recall →</text>`;
+  s += `<text transform="translate(12 ${mt + ih / 2}) rotate(-90)" text-anchor="middle" class="muted">Precisión →</text>`;
+  const path = pts => 'M' + pts.map(p => `${x(p.R).toFixed(1)},${y(p.P).toFixed(1)}`).join('L');
+  MODELS.filter(m => m.id !== S.model).forEach(m => {
+    const d = path(prPoints(m.id));
+    s += `<path d="${d}" fill="none" stroke="var(--axis)" stroke-width="1.5"/><path d="${d}" fill="none" stroke="transparent" stroke-width="12" data-tip="${m.name}" style="cursor:pointer" data-act="model:${m.id}"/>`;
+  });
+  const sel = prPoints(S.model);
+  s += `<path d="${path(sel)}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>`;
+  const cur = metricsAt(getDist(S.model), S.t);
+  s += `<circle cx="${x(cur.R)}" cy="${y(cur.P)}" r="6" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`;
+  s += `<rect id="prhit" x="${ml}" y="${mt}" width="${iw}" height="${ih}" fill="transparent"/>`;
+  s += `<g id="prhover" style="display:none;pointer-events:none"><line id="prhl" y1="${mt}" y2="${mt + ih}" stroke="var(--text-3)" stroke-dasharray="2 3"/><circle id="prhc" r="5" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/></g>`;
+  return s + `</svg>`;
+}
+function bindPR(){
+  const svg = $('#pr svg'); if (!svg) return;
+  const hit = $('#prhit'), g = $('#prhover'), W = +svg.getAttribute('width');
+  const ml = 46, mr = 14, iw = W - ml - mr, lo = .5;
+  const H = +svg.getAttribute('height'), mt = 10, ih = H - mt - 42;
+  const pts = prPoints(S.model).filter(p => p.R >= lo && p.P >= lo);
+  const tip = $('#tip');
+  hit.addEventListener('pointermove', e => {
+    const r = svg.getBoundingClientRect(), mx = (e.clientX - r.left) * W / r.width;
+    const rec = lo + (mx - ml) / iw * (1 - lo);
+    let best = pts[0]; pts.forEach(p => { if (Math.abs(p.R - rec) < Math.abs(best.R - rec)) best = p; });
+    if (!best) return;
+    const px = ml + (best.R - lo) / (1 - lo) * iw, py = mt + ih - (best.P - lo) / (1 - lo) * ih;
+    g.style.display = ''; $('#prhl').setAttribute('x1', px); $('#prhl').setAttribute('x2', px);
+    $('#prhc').setAttribute('cx', px); $('#prhc').setAttribute('cy', py);
+    tip.innerHTML = `<b>Umbral ${best.t.toFixed(3)}</b><br>Recall ${f3(best.R)} · Precisión ${f3(best.P)}<br><span style="opacity:.75">clic para usar este umbral</span>`;
+    tip.hidden = false; placeTip(e);
+    hit.dataset.t = best.t;
+  });
+  hit.addEventListener('pointerleave', () => { g.style.display = 'none'; tip.hidden = true; });
+  hit.addEventListener('click', () => { if (hit.dataset.t){ setT(+hit.dataset.t); } });
+}
+function bestThr(kind){
+  const d = getDist(S.model); let bt = .5, bv = -1;
+  if (kind === 'f1'){ for (let b = 1; b < NB; b++){ const m = metricsAt(d, b / NB); if (m.F1 > bv){ bv = m.F1; bt = b / NB; } } }
+  if (kind === 'r99'){ bt = 1 / NB; for (let b = 1; b < NB; b++){ if (metricsAt(d, b / NB).R >= .99) bt = b / NB; } }
+  if (kind === 'p99'){ bt = (NB - 1) / NB; for (let b = NB - 1; b >= 1; b--){ if (metricsAt(d, b / NB).P >= .99) bt = b / NB; } }
+  if (kind === 'def') bt = .5;
+  return bt;
+}
+function vUmbral(el){
+  el.innerHTML = `
+  <div class="card">
+    <div class="thr-top">
+      <div><h2>Umbral de decisión</h2><p class="sub" style="margin:0">Un bloque se marca como anómalo si su probabilidad es mayor o igual al umbral. Bajarlo atrapa más anomalías a costa de más falsas alarmas; subirlo hace lo contrario.</p></div>
+      <div class="thr-ctl"><input type="range" id="thr" min="0.005" max="0.995" step="0.005" value="${S.t}" aria-label="Umbral"><output id="thrv"></output></div>
+      <div class="quick"><span style="font-size:12px;color:var(--text-3);align-self:center;margin-right:4px">Atajos:</span>
+        <button class="chip" data-act="thr:f1">Máximo F1</button><button class="chip" data-act="thr:r99">Recall ≥ 99%</button><button class="chip" data-act="thr:p99">Precisión ≥ 99%</button><button class="chip" data-act="thr:def">Por defecto (0.5)</button></div>
+    </div>
+    <div id="kpis" class="grid g6 kpis"></div>
+    <p id="story" class="story"></p>
+  </div>
+  <div class="grid g75">
+    <div class="card"><h2>¿Dónde cae cada bloque?</h2><p class="sub">Probabilidad asignada por ${curModel().name}. Las barras opacas a la derecha del umbral son los bloques marcados.</p><div id="hist"></div></div>
+    <div class="card"><h2>Curva precisión–recall</h2><p class="sub">Cada punto de la curva es un umbral posible. Pasa el cursor para explorarlos; haz clic para fijar uno.</p><div id="pr"></div>
+      <div class="legend"><span><i class="ln" style="background:var(--accent)"></i>${curModel().name}</span><span><i class="ln" style="background:var(--axis)"></i>Otros modelos</span><span><i style="background:var(--accent);border-radius:50%"></i>Umbral actual</span></div>
+      <div class="note">Ambos ejes empiezan en 0.5.</div></div>
+  </div>`;
+  $('#thr').addEventListener('input', e => setT(+e.target.value, true));
+  uUmbral();
+}
+function setT(t, fromSlider){
+  S.t = Math.round(t * NB) / NB; renderControls();
+  if (S.tab !== 'umbral') return;
+  if (!fromSlider) $('#thr').value = S.t;
+  uUmbral();
+}
+function uUmbral(){
+  const m = metricsAt(getDist(S.model), S.t);
+  const thr = $('#thr'); thr.style.setProperty('--p', ((S.t - .005) / .99 * 100) + '%');
+  $('#thrv').textContent = S.t.toFixed(3);
+  const K = [['Precisión', f3(m.P)], ['Recall', f3(m.R)], ['F1', f3(m.F1)], ['A revisar', fmt(m.flag)], ['Falsas alarmas', fmt(m.FP)], ['No detectadas', fmt(m.FN)]];
+  $('#kpis').innerHTML = K.map(([k, v]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  const ratio = m.flag ? m.FP / m.flag : 0;
+  $('#story').innerHTML = `Si el equipo de operaciones revisa los <b>${fmt(m.flag)}</b> bloques marcados (${pct(m.flag / N_TEST)} del total), encontrará <b>${fmt(m.TP)}</b> de las ${fmt(A_TEST)} anomalías. <b>${fmt(m.FN)}</b> pasarán sin alerta, y ${ratio < .005 ? 'casi ninguna revisión será una falsa alarma' : `<b>${pct(ratio)}</b> de sus revisiones serán falsas alarmas`}.`;
+  $('#hist').innerHTML = histSVG(getDist(S.model), S.t, $('#hist').clientWidth);
+  $('#pr').innerHTML = prSVG($('#pr').clientWidth);
+  bindPR();
+  document.querySelectorAll('[data-act^="thr:"]').forEach(b => b.classList.toggle('on', Math.abs(bestThr(b.dataset.act.slice(4)) - S.t) < 1e-9));
+}
+
+/* ---------- vista: triage ---------- */
+function vTriage(el){
+  const M = curModel();
+  const rows = POOL.map(b => ({...b, p:simScore(S.model, b.v)})).sort((a, b) => b.p - a.p);
+  rows.forEach(r => { const pred = r.p >= S.t, an = r.label === 'Anomaly'; r.res = pred ? (an ? 'VP' : 'FP') : (an ? 'FN' : 'VN'); });
+  let list = rows;
+  if (S.tri === 'alert') list = rows.filter(r => r.p >= S.t);
+  if (S.tri === 'err') list = rows.filter(r => r.res === 'FP' || r.res === 'FN');
+  if (!S.sel || !rows.find(r => r.id === S.sel)) S.sel = rows[0].id;
+  const nAlert = rows.filter(r => r.p >= S.t).length;
+  let body = '', drew = false;
+  list.forEach((r, i) => {
+    if (!drew && r.p < S.t && S.tri === 'all'){ drew = true; body += `<tr class="divider"><td colspan="5"><div class="divline">umbral ${S.t.toFixed(3)} · debajo no se alerta</div></td></tr>`; }
+    const dev = EV.filter(e => r.v[e] !== EV_INFO[e].typ && !(e === 'E3' && r.v[e] <= 2));
+    const res = {VP:['ok','✓ Atrapada'], VN:['ok','✓ Normal'], FP:['bad','✗ Falsa alarma'], FN:['bad','✗ No detectada']}[r.res];
+    body += `<tr class="click ${r.id === S.sel ? 'sel' : ''}" data-act="block:${r.id}">
+      <td class="mono" style="color:var(--text-3)">${rows.indexOf(r) + 1}</td>
+      <td class="mono" style="font-size:11.5px">${r.id}</td>
+      <td><div class="pbar" style="min-width:110px"><div class="tr"><div class="fl" style="width:${r.p * 100}%"></div></div><span class="vv">${r.p.toFixed(2)}</span></div></td>
+      <td><div class="chips" style="flex-wrap:nowrap">${dev.length ? dev.slice(0, 2).map(e => `<span class="ev">${e}=${r.v[e]}</span>`).join('') + (dev.length > 2 ? `<span class="ev" style="color:var(--text-3)">+${dev.length - 2}</span>` : '') : '<span style="color:var(--text-3);font-size:12px;white-space:nowrap">patrón normal</span>'}</div></td>
+      <td><div class="res ${res[0]}">${res[1]}</div><span class="badge ${r.label === 'Anomaly' ? 'a' : 'n'}" style="font-size:11px;color:var(--text-3)">real: ${r.label === 'Anomaly' ? 'Anomalía' : 'Normal'}</span></td></tr>`;
+  });
+  el.innerHTML = `
+  <div class="grid g75">
+    <div class="card">
+      <div class="cardhead"><div><h2>Bandeja de revisión</h2><p class="sub">Bloques ordenados por probabilidad de anomalía según ${M.name}, como los vería el equipo de operaciones. Muestra de ${POOL.length} bloques; ${nAlert} superan el umbral.</p></div>
+        ${seg('tri', [['all','Todos'],['alert','Solo alertas'],['err','Solo errores']], S.tri)}</div>
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>#</th><th>BlockId</th><th>Probabilidad</th><th>Fuera de lo normal</th><th>Resultado</th></tr></thead>
+        <tbody>${body || '<tr><td colspan="5"style="color:var(--text-3)">Sin bloques en este filtro.</td></tr>'}</tbody></table></div>
+    </div>
+    <div class="card" id="detail" style="align-self:start;position:sticky;top:70px"></div>
+  </div>`;
+  const b = rows.find(r => r.id === S.sel);
+  $('#detail').innerHTML = `
+    <div class="eyebrow">Detalle del bloque</div>
+    <div class="mono" style="font-size:13px;font-weight:600;word-break:break-all">${b.id}</div>
+    <div style="display:flex;gap:12px;align-items:center;margin:8px 0 16px;flex-wrap:wrap"><span class="badge ${b.label === 'Anomaly' ? 'a' : 'n'}">Etiqueta real: ${b.label === 'Anomaly' ? 'Anomalía' : 'Normal'}</span><span style="font-size:12px;color:var(--text-3)">Patrón: ${b.kind}</span></div>
+    <h2 style="font-size:13px">Probabilidad por modelo</h2>
+    ${MODELS.map(m => { const p = simScore(m.id, b.v); return `<div class="mrow ${m.id === S.model ? 'sel' : ''}"><span>${m.name}</span><div class="tr"><div class="fl" style="width:${p * 100}%"></div><div class="tk" style="left:calc(${S.t * 100}% - 1px)" data-tip="Umbral ${S.t.toFixed(3)}"></div></div><span class="vv">${p.toFixed(2)}</span></div>`; }).join('')}
+    <h2 style="font-size:13px;margin-top:18px">Conteo de eventos</h2>
+    <p class="sub" style="margin-bottom:6px">Barra = este bloque · línea = bloque normal típico</p>
+    ${EV.map(e => { const v = b.v[e], ty = EV_INFO[e].typ, off = v !== ty && !(e === 'E3' && v <= 2);
+      return `<div class="mrow" data-tip="<b>${e}</b> · ${EV_INFO[e].lbl}<br>Este bloque: ${v} · típico: ${ty}"><span><span class="mono" style="font-weight:600">${e}</span> <span style="color:var(--text-3)">${EV_INFO[e].lbl}</span></span><div class="tr"><div class="fl" style="width:${v / 8 * 100}%;background:${off ? 'var(--accent)' : 'var(--axis)'}"></div><div class="tk" style="left:calc(${ty / 8 * 100}% - 1px)"></div></div><span class="vv">${v}</span></div>`; }).join('')}
+    <button class="chip" style="margin-top:14px" data-act="tosim:${b.id}">Abrir en el simulador →</button>`;
+}
+
+/* ---------- vista: simulador ---------- */
+function vSim(el){
+  el.innerHTML = `
+  <div class="grid g57">
+    <div class="card">
+      <h2>Construye un bloque</h2>
+      <p class="sub">Ajusta cuántas veces aparece cada evento. En un bloque normal, E5, E9, E11 y E26 ocurren 3 veces (una por réplica) y E22 una vez.</p>
+      <div class="presets">${PRESETS.map(p => `<button class="chip ${S.preset === p.id ? 'on' : ''}" data-act="preset:${p.id}">${p.name}</button>`).join('')}</div>
+      ${EV.map(e => `<div class="sl"><div class="sl-h"><span class="ev">${e}</span><span class="sl-l">${EV_INFO[e].lbl}</span><span class="ty">típico ${EV_INFO[e].typ}</span><output id="o-${e}"></output></div>
+        <input type="range" min="0" max="8" step="1" data-ev="${e}" value="${S.sim[e]}" aria-label="${e} ${EV_INFO[e].lbl}"></div>`).join('')}
+    </div>
+    <div class="grid" style="align-content:start">
+      <div class="card" id="simout"></div>
+      <div class="card" id="simwhy"></div>
+    </div>
+  </div>`;
+  el.querySelectorAll('input[data-ev]').forEach(i => i.addEventListener('input', () => { S.sim[i.dataset.ev] = +i.value; S.preset = null; el.querySelectorAll('.presets .chip').forEach(c => c.classList.remove('on')); uSim(); }));
+  uSim();
+}
+function uSim(){
+  EV.forEach(e => { $('#o-' + e).textContent = S.sim[e]; const i = document.querySelector(`input[data-ev="${e}"]`); i.style.setProperty('--p', (S.sim[e] / 8 * 100) + '%'); });
+  const M = curModel(), p = simScore(S.model, S.sim), an = p >= S.t;
+  const isNormal = EV.every(e => S.sim[e] === NORMAL_V[e]);
+  $('#simout').innerHTML = `
+    <div class="eyebrow">Predicción · ${M.name}</div>
+    <div class="bigprob"><span class="v">${pct(p, p > .999 || p < .001 ? 2 : 1)}</span><span class="verdict ${an ? 'a' : 'n'}">${an ? 'Se marca como anomalía' : 'Pasa como normal'}</span></div>
+    <div style="font-size:12.5px;color:var(--text-2);margin-bottom:16px">probabilidad de anomalía · umbral ${S.t.toFixed(3)}</div>
+    ${MODELS.map(m => { const q = simScore(m.id, S.sim); return `<div class="mrow ${m.id === S.model ? 'sel' : ''}"><span>${m.name}</span><div class="tr"><div class="fl" style="width:${q * 100}%"></div><div class="tk" style="left:calc(${S.t * 100}% - 1px)" data-tip="Umbral ${S.t.toFixed(3)}"></div></div><span class="vv">${q.toFixed(2)}</span></div>`; }).join('')}
+    ${isNormal ? `<div class="callout"><b>Este es el límite del enfoque.</b> Este vector es idéntico al de los bloques B1, B2 y B3 del informe: dos son normales y uno es anómalo. Cualquier modelo que solo vea conteos les dará la misma predicción. Para separarlos haría falta el orden de los eventos (DeepLog, LogRobust).</div>` : ''}`;
+  const c = contrib(S.sim), items = EV.map(e => [e, c[e]]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);
+  const mx = Math.max(6, ...items.map(x => x[1]));
+  $('#simwhy').innerHTML = `<h2>¿Qué lo hace sospechoso?</h2><p class="sub">Cuánto aporta cada evento a la sospecha, comparado con un bloque normal típico.</p>
+    ${items.length ? items.map(([e, v]) => `<div class="mrow"><span><span class="mono" style="font-weight:600">${e}</span> <span style="color:var(--text-3)">${S.sim[e] > EV_INFO[e].typ ? '↑' : '↓'} ${S.sim[e]} vs ${EV_INFO[e].typ}</span></span><div class="tr"><div class="fl" style="width:${v / mx * 100}%"></div></div><span class="vv">+${v.toFixed(1)}</span></div>`).join('')
+      : '<p style="color:var(--text-2);font-size:13px;margin:0">Nada: el bloque coincide exactamente con el patrón de un ciclo de vida normal.</p>'}
+    <div class="note">En la versión real, esta explicación vendría de los coeficientes del modelo o de valores SHAP.</div>`;
+}
+
+/* ---------- vista: datos ---------- */
+function vDatos(el){
+  const T4 = [['E9',3.000,1.818],['E11',3.000,1.831],['E26',3.001,1.888],['E3',.027,.649],['E5',3.001,2.495],['E7',0,.217]];
+  const IMP = [['E5',93.4],['E13',6.0],['E26',.6],['Otros 16',0]];
+  el.innerHTML = `
+  <div class="card">
+    <div class="eyebrow">Cifras reales del Avance 1</div>
+    <h2>Distribución de clases · HDFS_v1 completo</h2><p class="sub">575,061 bloques etiquetados por expertos del dominio.</p>
+    <div class="prop">
+      <div style="flex:558223;background:var(--normal)" data-tip="<b>Normal</b><br>558,223 bloques · 97.07%"></div>
+      <div style="flex:16838;min-width:8px;background:var(--anom)" data-tip="<b>Anomalía</b><br>16,838 bloques · 2.93%"></div>
+    </div>
+    <div class="legend" style="justify-content:space-between"><span><i style="background:var(--normal)"></i>Normal · <b class="mono">558,223</b> (97.07%)</span><span><i style="background:var(--anom)"></i>Anomalía · <b class="mono">16,838</b> (2.93%)</span></div>
+    <p class="note">Un clasificador que siempre diga «Normal» tendría 97.1% de accuracy sin detectar nada. Por eso se evalúa con precisión, recall y F1.</p>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h2>Frecuencia promedio por clase</h2><p class="sub">Eventos con mayor diferencia entre clases (muestra de validación, 7,940 bloques).</p>
+      <div class="legend" style="margin:0 0 10px"><span><i style="background:var(--normal)"></i>Normal</span><span><i style="background:var(--anom)"></i>Anomalía</span></div><div id="t4"></div></div>
+    <div class="card"><h2>Importancia de variables</h2><p class="sub">Árbol de decisión (profundidad 3) sobre la muestra de validación.</p><div id="imp"></div>
+      <p class="note">E5 concentra casi toda la importancia: indica cuántas réplicas empezaron a recibirse. Es importancia relativa dentro del árbol, no causalidad.</p></div>
+  </div>
+  <div class="card"><h2>Diccionario de eventos</h2><p class="sub">Plantillas extraídas por Drain que aparecen en el análisis.</p>
+    <div class="tblwrap"><table class="tbl dict"><thead><tr><th>Evento</th><th>Plantilla</th><th>Qué significa</th><th class="num">Típico</th></tr></thead>
+    <tbody>${['E3','E5','E7','E9','E11','E13','E22','E26'].map(e => `<tr><td>${e}</td><td class="tpl">${EV_INFO[e].tpl}</td><td>${EV_INFO[e].desc}</td><td class="num">${EV_INFO[e].typ}</td></tr>`).join('')}</tbody></table></div></div>`;
+  const W = $('#t4').clientWidth, ml = 40, mr = 44, rh = 38, bh = 11, H = rh * T4.length + 22, iw = W - ml - mr, xm = 3.2, x = v => v / xm * iw;
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Frecuencia promedio por clase">`;
+  [0, 1, 2, 3].forEach(v => s += `<line x1="${ml + x(v)}" x2="${ml + x(v)}" y1="0" y2="${rh * T4.length}" stroke="var(--grid)"/><text x="${ml + x(v)}" y="${rh * T4.length + 16}" text-anchor="middle" class="mono muted">${v}</text>`);
+  T4.forEach(([e, n, a], i) => {
+    const y0 = i * rh + (rh - bh * 2 - 2) / 2;
+    s += `<text x="0" y="${y0 + bh + 5}" class="mono ink" style="font-weight:600">${e}</text>`;
+    [[n, 'var(--normal)', 'Normal'], [a, 'var(--anom)', 'Anomalía']].forEach(([v, c, l], j) => {
+      const yy = y0 + j * (bh + 2), w = Math.max(v > 0 ? 3 : 0, x(v));
+      s += `<g data-tip="<b>${e}</b> · ${l}<br>promedio ${v.toFixed(3)} por bloque"><rect x="${ml}" y="${yy - 1}" width="${iw + mr}" height="${bh + 2}" fill="transparent"/><rect x="${ml}" y="${yy}" width="${w}" height="${bh}" rx="3" fill="${c}"/>
+        <text x="${ml + w + 6}" y="${yy + bh - 1.5}" class="mono" style="font-size:10.5px">${v.toFixed(2)}</text></g>`;
+    });
+  });
+  $('#t4').innerHTML = s + '</svg>';
+  const W2 = $('#imp').clientWidth, ml2 = 70, mr2 = 54, iw2 = W2 - ml2 - mr2;
+  let s2 = `<svg width="${W2}" height="${IMP.length * 40}" viewBox="0 0 ${W2} ${IMP.length * 40}" role="img" aria-label="Importancia de variables">`;
+  IMP.forEach(([e, v], i) => {
+    const yy = i * 40 + 12, w = Math.max(v > 0 ? 4 : 0, v / 100 * iw2);
+    s2 += `<g data-tip="<b>${e}</b><br>${v.toFixed(1)}% de la importancia"><rect x="0" y="${yy - 8}" width="${W2}" height="32" fill="transparent"/>
+      <text x="0" y="${yy + 12}" class="mono ink" style="font-weight:600">${e}</text>
+      <rect x="${ml2}" y="${yy}" width="${iw2}" height="16" rx="4" fill="var(--surface-2)"/>
+      <rect x="${ml2}" y="${yy}" width="${w}" height="16" rx="4" fill="var(--accent)"/>
+      <text x="${ml2 + iw2 + 8}" y="${yy + 12}" class="mono ink">${v.toFixed(1)}%</text></g>`;
+  });
+  $('#imp').innerHTML = s2 + '</svg>';
+}
+
+/* ---------- enrutado ---------- */
+const VIEWS = {resumen:vResumen, modelos:vModelos, umbral:vUmbral, triage:vTriage, simulador:vSim, datos:vDatos};
+function render(){
+  renderTabs(); renderControls();
+  const main = $('#main'); main.innerHTML = '<div class="view" id="v"></div>';
+  VIEWS[S.tab]($('#v'));
+}
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const [k, v] = el.dataset.act.split(/:(.*)/s);
+  if (k === 'tab'){ S.tab = v; render(); window.scrollTo({top:0, behavior:'smooth'}); }
+  else if (k === 'model'){ S.model = v; render(); }
+  else if (k === 'rep'){ S.rep = v; render(); }
+  else if (k === 'bal'){ S.bal = v; render(); }
+  else if (k === 'variant'){ [S.rep, S.bal] = v.split('-'); render(); }
+  else if (k === 'metric'){ S.metric = v; render(); }
+  else if (k === 'tri'){ S.tri = v; render(); }
+  else if (k === 'block'){ S.sel = v; render(); }
+  else if (k === 'thr'){ setT(bestThr(v)); }
+  else if (k === 'preset'){ const p = PRESETS.find(x => x.id === v); S.sim = {...p.v}; S.preset = v; render(); }
+  else if (k === 'tosim'){ const b = POOL.find(x => x.id === v); S.sim = {...b.v}; S.preset = null; S.tab = 'simulador'; render(); window.scrollTo({top:0, behavior:'smooth'}); }
+  else if (k === 'theme'){
+    const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem('logwatch-theme', document.documentElement.dataset.theme); } catch (_) {}
+  }
+  $('#tip').hidden = true;
+});
+
+/* tooltip */
+const tipEl = $('#tip');
+function placeTip(e){
+  const r = tipEl.getBoundingClientRect(); let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tipEl.style.left = Math.max(8, x) + 'px'; tipEl.style.top = Math.max(8, y) + 'px';
+}
+document.addEventListener('pointermove', e => {
+  if (e.target.id === 'prhit') return;
+  const el = e.target.closest('[data-tip]');
+  if (!el){ tipEl.hidden = true; return; }
+  tipEl.innerHTML = el.dataset.tip; tipEl.hidden = false; placeTip(e);
+});
+document.addEventListener('pointerleave', () => tipEl.hidden = true);
+
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (S.tab !== 'simulador') render(); }, 150); });
+try { const th = localStorage.getItem('logwatch-theme'); if (th) document.documentElement.dataset.theme = th; } catch (_) {}
+const h = location.hash.slice(1); if (VIEWS[h]) S.tab = h;
+render();
+</script>
+</body>
+</html>
