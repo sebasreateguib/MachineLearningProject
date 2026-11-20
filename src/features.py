@@ -91,6 +91,19 @@ def load_matrix(source: str = "sample"):
     return df.drop(columns="Label"), df["Label"]
 
 
+def load_split(source: str = "full"):
+    """Partición train/test única del proyecto: 80/20 estratificada, random_state=42.
+
+    Todos los scripts (train, evaluate, export) la obtienen de aquí para que el
+    conjunto de test sea siempre exactamente el mismo.
+    """
+    from sklearn.model_selection import train_test_split
+    from config import SEED, TEST_SIZE
+
+    X, y = load_matrix(source)
+    return train_test_split(X, y, test_size=TEST_SIZE, stratify=y, random_state=SEED)
+
+
 class TfidfTransformer(BaseEstimator, TransformerMixin):
     """Ponderación TF-IDF + centrado, como `FeatureExtractor(term_weighting='tf-idf',
     normalization='zero-mean')` de Loglizer.

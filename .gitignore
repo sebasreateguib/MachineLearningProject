@@ -2,5 +2,7 @@
 __pycache__/
 .DS_Store
 data/
-artifacts/*.joblib
+artifacts/models/
+artifacts/quick/
+artifacts/*.parquet
 .ipynb_checkpoints/

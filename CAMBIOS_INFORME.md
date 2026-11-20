@@ -24,8 +24,8 @@ Lista de todo lo que hay que modificar en `Informe-IEEE-Transactions.pdf`, secci
 | II Trabajos relacionados | Agregar referencias de SMOTE, scikit-learn, imbalanced-learn y Drain3 | ✅ |
 | III Metodología | Detallar parsing, TF-IDF, fuga de datos y elección de Naive Bayes | ✅ |
 | III Resultados preliminares | Responder la hipótesis abierta; quitar el "trabajo futuro (a)", que ya se hizo | ✅ ✏️ |
-| **IV Resultados** (nueva) | 16 configuraciones, matriz de confusión, curva PR, análisis de umbral | ⏳ Fase 3 |
-| **V Discusión** (nueva) | Responder las 3 preguntas del proyecto | ✅ parcial, ⏳ Fase 4 |
+| **IV Resultados** (nueva) | 16 configuraciones, matriz de confusión, análisis de umbral | ✅ (falta la figura de la curva PR) |
+| **V Discusión** (nueva) | Responder las 3 preguntas del proyecto | ✅ casi completa, ⏳ detalles de la Fase 4 |
 | **VI Interfaz LogWatch** (nueva) | Descripción y captura | ⏳ Fase 5 |
 | **VII Conclusiones** (nueva) | Conclusiones y trabajo futuro | ⏳ Fase 4 |
 
@@ -191,17 +191,73 @@ Ajustes a cada paso de la lista:
 
 ---
 
-## IV. Resultados (sección nueva) ⏳ Fase 3
+## IV. Resultados (sección nueva) ✅
 
-Contenido previsto:
+Todas las cifras salen de `python src/evaluate.py` (archivos `artifacts/cv_results.csv` y `artifacts/test_metrics.csv`).
 
-- **Tabla:** las 16 configuraciones (4 modelos × 2 representaciones × 2 estrategias de desbalance), con precisión, recall y F1 de la clase anómala. Primero en validación cruzada (media ± desviación estándar de 5 folds) y después en test.
-- **Hiperparámetros** elegidos por GridSearchCV para cada modelo.
-- **Matriz de confusión** del mejor modelo en test.
-- **Curva precisión–recall** de los cuatro modelos.
-- **Análisis de umbral:** cuántos bloques habría que revisar para atrapar el 95 %, 99 % y 99.9 % de las anomalías.
-- **Comparación con He et al. [2]**, que reportan F1 > 0.99 sobre el mismo conjunto.
-- **Línea base** de predecir siempre "Normal": accuracy 0.971 y recall 0.
+**Configuración experimental (texto):**
+
+> Se separó el 20 % de los bloques como test (115,013 bloques, 3,368 anómalos) y no se usó hasta la evaluación final. Sobre los 460,048 bloques de entrenamiento se ajustaron las 16 configuraciones con GridSearchCV y validación cruzada estratificada de 5 folds, eligiendo los hiperparámetros por el F1 de la clase anómala. El mejor modelo se seleccionó por F1 en validación cruzada, no en test. El entrenamiento completo tomó 12 minutos en un equipo de 12 núcleos.
+
+**Tabla de hiperparámetros explorados:**
+
+| Modelo | Grilla | Mejor valor (conteo, class_weight) |
+|---|---|---|
+| Árbol de decisión | `max_depth` ∈ {5, 10, 20, ∞}, `min_samples_leaf` ∈ {1, 5, 20} | `max_depth=20`, `min_samples_leaf=1` |
+| Random Forest | `n_estimators` ∈ {100, 300}, `max_depth` ∈ {10, 20, ∞} | `n_estimators=100`, `max_depth=20` |
+| Regresión logística | `C` ∈ {0.01, 0.1, 1, 10, 100, 1000} | `C=1000` (meseta desde C=1) |
+| Naive Bayes (Gaussiano) | `var_smoothing` ∈ {1e-9, 1e-7, 1e-5} | `1e-7` |
+
+> Nota: en la primera corrida la regresión logística eligió C=10, el extremo de la grilla original {0.01…10}. Se amplió hasta 1000 y se confirmó que el F1 se estabiliza en 0.980 a partir de C=1.
+
+**Tabla principal: resultados de las 16 configuraciones** (clase anómala, umbral 0.5)
+
+| Modelo | Repr. | Desbalance | F1 CV (media ± desv.) | Precisión test | Recall test | F1 test | FP | FN |
+|---|---|---|---|---|---|---|---|---|
+| Árbol | TF-IDF | class_weight | **0.9984 ± 0.0006** | 0.9964 | 0.9982 | 0.9973 | 12 | 6 |
+| RF | TF-IDF | SMOTE | 0.9984 ± 0.0005 | 0.9967 | 0.9997 | **0.9982** | 11 | 1 |
+| Árbol | TF-IDF | SMOTE | 0.9984 ± 0.0005 | 0.9964 | 0.9979 | 0.9972 | 12 | 7 |
+| Árbol | Conteo | class_weight | 0.9984 ± 0.0005 | 0.9964 | 0.9982 | 0.9973 | 12 | 6 |
+| RF | Conteo | class_weight | 0.9983 ± 0.0006 | 0.9967 | 0.9997 | 0.9982 | 11 | 1 |
+| RF | TF-IDF | class_weight | 0.9983 ± 0.0006 | 0.9962 | 0.9997 | 0.9979 | 13 | 1 |
+| RF | Conteo | SMOTE | 0.9976 ± 0.0018 | 0.9941 | 0.9997 | 0.9969 | 20 | 1 |
+| Árbol | Conteo | SMOTE | 0.9974 ± 0.0018 | 0.9938 | 0.9979 | 0.9959 | 21 | 7 |
+| LR | Conteo | class_weight | 0.9802 ± 0.0009 | 0.9568 | 0.9997 | 0.9778 | 152 | 1 |
+| LR | Conteo | SMOTE | 0.9801 ± 0.0009 | 0.9568 | 1.0000 | 0.9779 | 152 | 0 |
+| LR | TF-IDF | class_weight | 0.9799 ± 0.0008 | 0.9563 | 1.0000 | 0.9776 | 154 | 0 |
+| LR | TF-IDF | SMOTE | 0.9797 ± 0.0009 | 0.9568 | 0.9997 | 0.9778 | 152 | 1 |
+| NB | (las 4 variantes) | | 0.9440 ± 0.0039 | 0.8875 | 1.0000 | 0.9404 | 427 | 0 |
+| *Siempre «Normal»* | | | — | — | 0 | 0 | 0 | 3,368 |
+
+**Mejor modelo según CV:** árbol de decisión (TF-IDF, class_weight, `max_depth=20`). Matriz de confusión en test:
+
+| | Predice Normal | Predice Anomalía |
+|---|---|---|
+| **Real Normal** | 111,633 | 12 |
+| **Real Anomalía** | 6 | 3,362 |
+
+> ✏️ Ojo al redactar: las seis mejores configuraciones están empatadas dentro de una desviación estándar en CV (0.9983–0.9984 ± 0.0006). Elegir el árbol es correcto por el criterio fijado (mayor F1 medio en CV), pero conviene decir que árbol y Random Forest son estadísticamente equivalentes. En test, RF obtiene F1 0.9982 frente a 0.9973 del árbol.
+
+**Análisis de umbral** (cuántos bloques revisar para atrapar cierto % de las anomalías del test):
+
+| Mejor config. de cada modelo | Recall ≥ 95 % | Recall ≥ 99 % | Recall ≥ 99.9 % |
+|---|---|---|---|
+| Random Forest | 3,226 (2.80 %) | 3,349 (2.91 %) | **3,376 (2.94 %)**, precisión 0.997 |
+| Árbol de decisión | 3,298 (2.87 %) | 3,369 (2.93 %) | 115,013 (100 %): no alcanzable |
+| Regresión logística | 3,400 (2.96 %) | 3,499 (3.04 %) | 3,518 (3.06 %) |
+| Naive Bayes | 3,795 (3.30 %) | 3,795 (3.30 %) | 3,795 (3.30 %) |
+
+Texto sugerido:
+
+> Aunque el árbol de decisión y Random Forest obtienen el mismo F1 con umbral 0.5, solo Random Forest permite ajustar el umbral con precisión. El árbol asigna probabilidades casi binarias (la pureza de cada hoja), por lo que no existe un umbral que alcance un recall de 99.9 % sin marcar todos los bloques. Random Forest, al promediar 100 árboles, produce probabilidades graduales: revisando solo el 2.94 % de los bloques se atrapa el 99.9 % de las anomalías, con precisión 0.997. Para el caso de uso planteado, priorizar la revisión humana, Random Forest es la opción recomendada.
+
+**Hallazgos sobre el diseño experimental** (para el texto):
+
+- **TF-IDF no afecta al árbol ni a Naive Bayes.** Obtienen métricas idénticas con conteo y con TF-IDF, porque TF-IDF es una transformación afín por columna. Los árboles solo dependen del orden de los valores, y GaussianNB ajusta media y varianza por columna. Solo afecta a la regresión logística: con TF-IDF necesita C ≥ 100 para igualar al conteo.
+- **SMOTE no mejora frente a class_weight.** En el árbol y RF con conteos incluso aumenta los falsos positivos (de 12 a 21 y de 11 a 20), y es entre 1.5 y 9 veces más lento de entrenar.
+- **Naive Bayes** obtiene recall perfecto pero 427 falsas alarmas. Una explicación probable es que su supuesto de independencia entre eventos no se cumple: E5, E9, E11 y E26 describen las mismas tres réplicas y tienden a variar juntos. ⏳ Verificar con la matriz de correlación en la Fase 4 antes de afirmarlo.
+
+**Comparación con la literatura:** He et al. [2] reportan F1 > 0.99 con modelos supervisados sobre el mismo conjunto. Nuestros resultados (0.997–0.998) son consistentes con ese valor.
 
 ---
 
@@ -209,9 +265,18 @@ Contenido previsto:
 
 Responder las tres preguntas del proyecto:
 
-1. ✅ **¿El recall bajo se debía al truncamiento?** Sí. En la muestra, el 56.9 % de las anomalías era indistinguible de un bloque normal; en el conjunto completo, solo el 1.9 %. El mínimo de errores posibles pasa de 161 a 36 bloques. ⏳ Completar con el recall final de la Fase 3.
-2. ✅ / ⏳ **¿Los modelos aprenden la misma regla?** En la muestra, sí: predicciones idénticas. ⏳ En el conjunto completo hay que repetir la comparación en la Fase 4. Se espera que difieran, porque la importancia ya no se concentra en un solo evento.
-3. ✅ **¿Cuántas anomalías son indistinguibles por conteo?** 319 de 16,838 (1.9 %). ⏳ En la Fase 4: analizar qué tipo de anomalías son y si el orden de los eventos (DeepLog) podría separarlas.
+1. ✅ **¿El recall bajo se debía al truncamiento?** Sí. En la muestra, el 56.9 % de las anomalías era indistinguible de un bloque normal; en el conjunto completo, solo el 1.9 %. El mínimo de errores posibles pasa de 161 a 36 bloques. Con los mismos cuatro tipos de modelo, el recall sube de **0.492** (muestra) a **0.998** (árbol) y **0.9997** (RF) en el conjunto completo.
+2. ✅ **¿Los modelos aprenden la misma regla?** En la muestra, sí: predicciones idénticas. En el conjunto completo, **no**. Desacuerdos en test entre la mejor configuración de cada modelo:
+
+   | | Árbol | RF | LR | NB |
+   |---|---|---|---|---|
+   | Árbol | 0 | 6 | 149 | 421 |
+   | RF | 6 | 0 | 143 | 417 |
+   | LR | 149 | 143 | 0 | 276 |
+   | NB | 421 | 417 | 276 | 0 |
+
+   Los dos modelos de árboles convergen a casi la misma frontera (difieren en 6 bloques). Los modelos lineal y probabilístico se equivocan en otros bloques, casi siempre por exceso de falsos positivos.
+3. ✅ **¿Cuántas anomalías son indistinguibles por conteo?** 319 de 16,838 (1.9 %). En el test hay 129 bloques con un vector que comparten ambas clases. **11 de los 18 errores** del mejor modelo caen en esos bloques: son errores inevitables para cualquier modelo basado solo en conteos. ⏳ En la Fase 4: analizar qué tipo de anomalías son y si el orden de los eventos (DeepLog) podría separarlas.
 
 ---
 

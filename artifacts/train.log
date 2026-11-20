@@ -1,0 +1,37 @@
+Train: 460,048 bloques · 13,470 anomalías (2.93%) · CV 5 folds
+[ 1/16] Naive Bayes · Conteo · class_weight              3 combinaciones × 5 folds ... F1 0.9440 ± 0.0039 · 0.0 min · {"var_smoothing": 1e-07}
+[ 2/16] Naive Bayes · Conteo · SMOTE                     3 combinaciones × 5 folds ... F1 0.9440 ± 0.0039 · 0.3 min · {"var_smoothing": 1e-07}
+[ 3/16] Naive Bayes · TF-IDF · class_weight              3 combinaciones × 5 folds ... F1 0.9440 ± 0.0039 · 0.0 min · {"var_smoothing": 1e-07}
+[ 4/16] Naive Bayes · TF-IDF · SMOTE                     3 combinaciones × 5 folds ... F1 0.9440 ± 0.0039 · 0.1 min · {"var_smoothing": 1e-07}
+[ 5/16] Regresión logística · Conteo · class_weight      4 combinaciones × 5 folds ... F1 0.9801 ± 0.0008 · 0.1 min · {"C": 10}
+[ 6/16] Regresión logística · Conteo · SMOTE             4 combinaciones × 5 folds ... F1 0.9795 ± 0.0012 · 0.4 min · {"C": 10}
+[ 7/16] Regresión logística · TF-IDF · class_weight      4 combinaciones × 5 folds ... F1 0.9444 ± 0.0039 · 0.1 min · {"C": 1}
+[ 8/16] Regresión logística · TF-IDF · SMOTE             4 combinaciones × 5 folds ... F1 0.9748 ± 0.0011 · 0.1 min · {"C": 10}
+[ 9/16] Árbol de decisión · Conteo · class_weight       12 combinaciones × 5 folds ... F1 0.9984 ± 0.0005 · 0.1 min · {"max_depth": 20, "min_samples_leaf": 1}
+[10/16] Árbol de decisión · Conteo · SMOTE              12 combinaciones × 5 folds ... F1 0.9974 ± 0.0018 · 0.9 min · {"max_depth": null, "min_samples_leaf": 1}
+[11/16] Árbol de decisión · TF-IDF · class_weight       12 combinaciones × 5 folds ... F1 0.9984 ± 0.0006 · 0.1 min · {"max_depth": 20, "min_samples_leaf": 1}
+[12/16] Árbol de decisión · TF-IDF · SMOTE              12 combinaciones × 5 folds ... F1 0.9984 ± 0.0005 · 0.2 min · {"max_depth": 20, "min_samples_leaf": 1}
+[13/16] Random Forest · Conteo · class_weight            6 combinaciones × 5 folds ... F1 0.9983 ± 0.0006 · 1.5 min · {"max_depth": 20, "n_estimators": 100}
+[14/16] Random Forest · Conteo · SMOTE                   6 combinaciones × 5 folds ... F1 0.9976 ± 0.0018 · 3.3 min · {"max_depth": null, "n_estimators": 100}
+[15/16] Random Forest · TF-IDF · class_weight            6 combinaciones × 5 folds ... F1 0.9983 ± 0.0006 · 1.8 min · {"max_depth": 20, "n_estimators": 300}
+[16/16] Random Forest · TF-IDF · SMOTE                   6 combinaciones × 5 folds ... F1 0.9984 ± 0.0005 · 2.8 min · {"max_depth": 20, "n_estimators": 100}
+
+Tiempo total: 11.8 min
+
+        config  f1_mean  f1_std  precision_mean  recall_mean  ap_mean                                best_params
+   dt_tfidf_cw   0.9984  0.0006          0.9979       0.9990   0.9988   {"max_depth": 20, "min_samples_leaf": 1}
+rf_tfidf_smote   0.9984  0.0005          0.9976       0.9992   1.0000     {"max_depth": 20, "n_estimators": 100}
+dt_tfidf_smote   0.9984  0.0005          0.9979       0.9989   0.9988   {"max_depth": 20, "min_samples_leaf": 1}
+   dt_count_cw   0.9984  0.0005          0.9979       0.9989   0.9987   {"max_depth": 20, "min_samples_leaf": 1}
+   rf_count_cw   0.9983  0.0006          0.9974       0.9992   1.0000     {"max_depth": 20, "n_estimators": 100}
+   rf_tfidf_cw   0.9983  0.0006          0.9974       0.9992   1.0000     {"max_depth": 20, "n_estimators": 300}
+rf_count_smote   0.9976  0.0018          0.9959       0.9993   0.9996   {"max_depth": null, "n_estimators": 100}
+dt_count_smote   0.9974  0.0018          0.9961       0.9987   0.9987 {"max_depth": null, "min_samples_leaf": 1}
+   lr_count_cw   0.9801  0.0008          0.9614       0.9995   0.9887                                  {"C": 10}
+lr_count_smote   0.9795  0.0012          0.9601       0.9997   0.9816                                  {"C": 10}
+lr_tfidf_smote   0.9748  0.0011          0.9512       0.9997   0.9756                                  {"C": 10}
+   lr_tfidf_cw   0.9444  0.0039          0.8948       0.9999   0.9449                                   {"C": 1}
+   nb_count_cw   0.9440  0.0039          0.8939       1.0000   0.8939                   {"var_smoothing": 1e-07}
+nb_count_smote   0.9440  0.0039          0.8939       1.0000   0.8939                   {"var_smoothing": 1e-07}
+   nb_tfidf_cw   0.9440  0.0039          0.8939       1.0000   0.8939                   {"var_smoothing": 1e-07}
+nb_tfidf_smote   0.9440  0.0039          0.8939       1.0000   0.8939                   {"var_smoothing": 1e-07}

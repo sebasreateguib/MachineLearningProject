@@ -171,7 +171,13 @@ Cada paso guarda su salida en `data/processed/` o `artifacts/`, así que si algo
   - Con la similitud 0.5 de Loghub, Drain **fusiona E8** (*Interrupted*, falla) **con E11** (*terminating*, cierre normal). Por eso se usa 0.7.
   - `python src/validate_parse.py`: nuestra matriz coincide con `Event_occurrence_matrix.csv` de Loghub en el **100 %** de los bloques, eventos y etiquetas.
   - En el dataset completo solo el **1.9 %** de las anomalías tiene el mismo vector que un bloque normal (56.9 % en la muestra). Cualquier clasificador por conteo puede equivocarse, como mínimo, en **36 de 575,061 bloques**. Esto confirma que el recall bajo del Avance 1 se debía al truncamiento de la muestra.
-- [ ] **Fase 3 · Experimentos:** entrenar las 16 configuraciones con GridSearchCV y evaluar en test.
+- [x] **Fase 3 · Experimentos:** entrenar las 16 configuraciones con GridSearchCV y evaluar en test. `python src/train.py` (~12 min) y `python src/evaluate.py`.
+  - **Árbol y Random Forest: F1 ≈ 0.998** en CV y test. Regresión logística: 0.978. Naive Bayes: 0.940. Línea base «siempre Normal»: F1 0.
+  - Mejor según CV: árbol de decisión (TF-IDF, class_weight, `max_depth=20`), con test F1 0.9973 (12 FP, 6 FN). Las 6 mejores configuraciones están empatadas dentro de una desviación estándar.
+  - **Random Forest atrapa el 99.9 % de las anomalías revisando solo el 2.94 % de los bloques** (precisión 0.997). El árbol, en cambio, da probabilidades escalonadas y no permite ese ajuste fino del umbral.
+  - TF-IDF no cambia nada en árbol ni Naive Bayes (son invariantes a transformaciones por columna). SMOTE no mejora frente a `class_weight` y es más lento.
+  - A diferencia de la muestra, los modelos **no** aprenden la misma regla: árbol y RF difieren en 6 bloques, pero LR y NB difieren en 140–420.
+  - De los 18 errores del mejor modelo, 11 están en vectores que comparten ambas clases (inevitables por conteo).
 - [ ] **Fase 4 · Análisis:** comparar predicciones entre modelos, cuantificar las anomalías indistinguibles por conteo y redactar conclusiones.
 - [ ] **Fase 5 · Interfaz:** exportar `resultados.json` y conectar *LogWatch* con los datos reales.
 - [ ] **Fase 6 · Informe final:** actualizar el informe IEEE con los resultados.

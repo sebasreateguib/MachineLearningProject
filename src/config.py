@@ -6,6 +6,7 @@ DATA = ROOT / "data"
 RAW = DATA / "raw"
 PROCESSED = DATA / "processed"
 ARTIFACTS = ROOT / "artifacts"
+MODELS_DIR = ARTIFACTS / "models"
 
 # Muestra preprocesada de Loglizer (primeras ~100k líneas, ya parseadas con Drain)
 SAMPLE_DIR = RAW / "loglizer_sample"
@@ -26,3 +27,4 @@ BLOCK_ID_REGEX = r"blk_-?\d+"
 
 SEED = 42
 TEST_SIZE = 0.20
+CV_FOLDS = 5
