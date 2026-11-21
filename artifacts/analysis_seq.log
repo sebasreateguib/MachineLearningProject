@@ -1,0 +1,29 @@
+
+4 · Alternativa de mejora: incorporar el orden (pares de eventos consecutivos)
+──────────────────────────────────────────────────────────────────────────────
+  Variables: 29 conteos  →  309 (conteos + 280 pares)
+  Anomalías indistinguibles: 319 → 36 · errores mínimos posibles: 36 → 16
+  DT · conteo          CV F1 0.9984 ± 0.0005 │ test F1 0.9973 · P 0.9964 · R 0.9982 · FP   12 · FN   6 (0.0 min)
+  DT · conteo + orden  CV F1 0.9952 ± 0.0008 │ test F1 0.9939 · P 0.9923 · R 0.9955 · FP   26 · FN  15 (0.1 min)
+  RF · conteo          CV F1 0.9983 ± 0.0006 │ test F1 0.9982 · P 0.9967 · R 0.9997 · FP   11 · FN   1 (0.2 min)
+  RF · conteo + orden  CV F1 0.9959 ± 0.0009 │ test F1 0.9948 · P 0.9909 · R 0.9988 · FP   31 · FN   4 (0.5 min)
+
+  Diagnóstico (validación interna): bloques con un vector nunca visto en train 0.06% → 1.14%; entre las anomalías 1.6% → 16.6%
+  Los 300,395 bloques normales típicos (idénticos en conteo) tienen 305 órdenes distintos: las réplicas se registran en paralelo y su orden en el log varía.
+
+  En los vectores ambiguos, el 37% de los bloques queda con un vector único al agregar el orden:
+  la baja de anomalías indistinguibles es en gran parte unicidad, no señal. Dentro de cada vector ambiguo:
+    A=131 N= 11 · par más distintivo E9>E26    56% vs 91% · latencia mediana  37600 vs  37623
+    A=112 N=  7 · par más distintivo E26>E11   80% vs 43% · latencia mediana  37546 vs  37695
+    A= 55 N=  4 · par más distintivo E4>E2     38% vs 100% · latencia mediana  37426 vs  37255
+    A=  7 N=  3 · par más distintivo E3>E4     57% vs 100% · latencia mediana  49347 vs  50049
+    A=  5 N=  3 · par más distintivo E3>E4     60% vs 100% · latencia mediana  49147 vs  49627
+    A=  4 N=  3 · par más distintivo E3>E4     75% vs 33% · latencia mediana  51338 vs  51472
+    A=  3 N=197 · par más distintivo E9>E26    0% vs 34% · latencia mediana  34161 vs  33647
+    A=  1 N=  1 · par más distintivo E2>E25    100% vs 0% · latencia mediana  37927 vs  37998
+    A=  1 N=  2 · par más distintivo E26>E11   0% vs 100% · latencia mediana  48337 vs  50163
+  → Ni el orden ni la latencia separan a anómalos y normales que comparten vector.
+
+  Dos etapas (validación interna, 94 bloques ambiguos): solo conteo F1 0.9974 · P 0.9967 · R 0.9981 · FP    9 · FN   5 │ dos etapas F1 0.9974 · P 0.9967 · R 0.9981 · FP    9 · FN   5
+
+Resumen guardado en artifacts/analysis.json

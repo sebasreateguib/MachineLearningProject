@@ -1,0 +1,440 @@
+{
+ "naive_bayes": {
+  "corr": {
+   "E5": {
+    "E5": 1.0,
+    "E9": 0.688,
+    "E11": 0.7,
+    "E26": 0.939,
+    "E21": 0.209,
+    "E23": 0.142
+   },
+   "E9": {
+    "E5": 0.688,
+    "E9": 1.0,
+    "E11": 0.996,
+    "E26": 0.763,
+    "E21": 0.215,
+    "E23": 0.214
+   },
+   "E11": {
+    "E5": 0.7,
+    "E9": 0.996,
+    "E11": 1.0,
+    "E26": 0.763,
+    "E21": 0.215,
+    "E23": 0.214
+   },
+   "E26": {
+    "E5": 0.939,
+    "E9": 0.763,
+    "E11": 0.763,
+    "E26": 1.0,
+    "E21": 0.216,
+    "E23": 0.149
+   },
+   "E21": {
+    "E5": 0.209,
+    "E9": 0.215,
+    "E11": 0.215,
+    "E26": 0.216,
+    "E21": 1.0,
+    "E23": 0.994
+   },
+   "E23": {
+    "E5": 0.142,
+    "E9": 0.214,
+    "E11": 0.214,
+    "E26": 0.149,
+    "E21": 0.994,
+    "E23": 1.0
+   }
+  },
+  "hypotheses": {
+   "base (29 eventos)": {
+    "f1": 0.9404,
+    "precision": 0.8875,
+    "recall": 1.0,
+    "fp": 427,
+    "fn": 0
+   },
+   "(a) sin eventos redundantes E9, E11, E26": {
+    "f1": 0.9404,
+    "precision": 0.8875,
+    "recall": 1.0,
+    "fp": 427,
+    "fn": 0
+   },
+   "(b) log(1+x) para acercarse a una gaussiana": {
+    "f1": 0.9408,
+    "precision": 0.8882,
+    "recall": 1.0,
+    "fp": 424,
+    "fn": 0
+   }
+  },
+  "rereplication": {
+   "normales": {
+    "total": 364,
+    "nb_count_cw": 364,
+    "lr_count_cw": 92,
+    "dt_count_cw": 7,
+    "rf_count_cw": 6
+   },
+   "anómalos": {
+    "total": 689,
+    "nb_count_cw": 689,
+    "lr_count_cw": 688,
+    "dt_count_cw": 685,
+    "rf_count_cw": 688
+   }
+  }
+ },
+ "ambiguous": {
+  "vectors": [
+   {
+    "anomalies": 131,
+    "normals": 11,
+    "diff_vs_typical": {
+     "E2": 3,
+     "E3": 1,
+     "E4": 2,
+     "E5": 4,
+     "E6": 1,
+     "E16": 1,
+     "E18": 1,
+     "E21": 4,
+     "E25": 1,
+     "E26": 4
+    }
+   },
+   {
+    "anomalies": 112,
+    "normals": 7,
+    "diff_vs_typical": {
+     "E2": 2,
+     "E3": 1,
+     "E4": 2,
+     "E5": 4,
+     "E6": 1,
+     "E16": 1,
+     "E18": 1,
+     "E21": 4,
+     "E25": 1,
+     "E26": 4
+    }
+   },
+   {
+    "anomalies": 55,
+    "normals": 4,
+    "diff_vs_typical": {
+     "E2": 1,
+     "E3": 1,
+     "E4": 2,
+     "E5": 4,
+     "E6": 1,
+     "E16": 1,
+     "E18": 1,
+     "E21": 4,
+     "E25": 1,
+     "E26": 4
+    }
+   },
+   {
+    "anomalies": 7,
+    "normals": 3,
+    "diff_vs_typical": {
+     "E2": 1,
+     "E3": 1,
+     "E4": 15,
+     "E26": 4,
+     "E28": 1
+    }
+   },
+   {
+    "anomalies": 5,
+    "normals": 3,
+    "diff_vs_typical": {
+     "E3": 1,
+     "E4": 15,
+     "E26": 4,
+     "E28": 1
+    }
+   },
+   {
+    "anomalies": 4,
+    "normals": 3,
+    "diff_vs_typical": {
+     "E2": 3,
+     "E3": 1,
+     "E4": 15,
+     "E26": 4,
+     "E28": 1
+    }
+   },
+   {
+    "anomalies": 3,
+    "normals": 197,
+    "diff_vs_typical": {
+     "E3": 8,
+     "E4": 4,
+     "E20": 1
+    }
+   },
+   {
+    "anomalies": 1,
+    "normals": 1,
+    "diff_vs_typical": {
+     "E2": 4,
+     "E3": 1,
+     "E4": 2,
+     "E5": 4,
+     "E6": 1,
+     "E16": 1,
+     "E18": 1,
+     "E21": 4,
+     "E25": 1,
+     "E26": 4
+    }
+   },
+   {
+    "anomalies": 1,
+    "normals": 2,
+    "diff_vs_typical": {
+     "E2": 2,
+     "E3": 1,
+     "E4": 15,
+     "E26": 4,
+     "E28": 1
+    }
+   }
+  ],
+  "same_as_typical_normal": 0,
+  "distinct_vectors": 589,
+  "ambiguous_vectors": 9,
+  "ambiguous_anomalies": 319,
+  "normals_in_ambiguous": 231,
+  "min_errors": 36
+ },
+ "errors": {
+  "dt_tfidf_cw": {
+   "errors": 18,
+   "ambiguous_vector": 11,
+   "unseen_in_train": 7,
+   "other": 0
+  },
+  "rf_tfidf_smote": {
+   "errors": 12,
+   "ambiguous_vector": 11,
+   "unseen_in_train": 1,
+   "other": 0
+  }
+ },
+ "chronological": {
+  "train": 460048,
+  "test": 115013,
+  "train_anomaly_rate": 0.033,
+  "test_anomaly_rate": 0.0146,
+  "models": {
+   "dt": {
+    "f1": 0.9982,
+    "precision": 1.0,
+    "recall": 0.9964,
+    "fp": 0,
+    "fn": 6,
+    "f1_random_split": 0.9973
+   },
+   "rf": {
+    "f1": 0.9982,
+    "precision": 1.0,
+    "recall": 0.9964,
+    "fp": 0,
+    "fn": 6,
+    "f1_random_split": 0.9982
+   },
+   "lr": {
+    "f1": 0.9952,
+    "precision": 0.9988,
+    "recall": 0.9917,
+    "fp": 2,
+    "fn": 14,
+    "f1_random_split": 0.9778
+   },
+   "nb": {
+    "f1": 0.8724,
+    "precision": 0.7737,
+    "recall": 1.0,
+    "fp": 491,
+    "fn": 0,
+    "f1_random_split": 0.9404
+   }
+  }
+ },
+ "sequence": {
+  "ambiguity_counts": {
+   "distinct_vectors": 589,
+   "ambiguous_vectors": 9,
+   "ambiguous_anomalies": 319,
+   "normals_in_ambiguous": 231,
+   "min_errors": 36
+  },
+  "ambiguity_counts_order": {
+   "distinct_vectors": 9629,
+   "ambiguous_vectors": 15,
+   "ambiguous_anomalies": 36,
+   "normals_in_ambiguous": 58,
+   "min_errors": 16
+  },
+  "models": {
+   "dt · conteo": {
+    "f1": 0.9973,
+    "precision": 0.9964,
+    "recall": 0.9982,
+    "fp": 12,
+    "fn": 6,
+    "cv_f1_mean": 0.9984,
+    "cv_f1_std": 0.0005
+   },
+   "dt · conteo + orden": {
+    "f1": 0.9939,
+    "precision": 0.9923,
+    "recall": 0.9955,
+    "fp": 26,
+    "fn": 15,
+    "cv_f1_mean": 0.9952,
+    "cv_f1_std": 0.0008
+   },
+   "rf · conteo": {
+    "f1": 0.9982,
+    "precision": 0.9967,
+    "recall": 0.9997,
+    "fp": 11,
+    "fn": 1,
+    "cv_f1_mean": 0.9983,
+    "cv_f1_std": 0.0006
+   },
+   "rf · conteo + orden": {
+    "f1": 0.9948,
+    "precision": 0.9909,
+    "recall": 0.9988,
+    "fp": 31,
+    "fn": 4,
+    "cv_f1_mean": 0.9959,
+    "cv_f1_std": 0.0009
+   }
+  },
+  "n_bigrams": 280,
+  "unseen_vectors_val": {
+   "conteo": {
+    "all": 0.0006,
+    "anomalies": 0.0156
+   },
+   "conteo + orden": {
+    "all": 0.0114,
+    "anomalies": 0.1656
+   }
+  },
+  "orders_of_typical_normal": 305,
+  "unique_after_order": 0.373,
+  "within_ambiguous_vectors": [
+   {
+    "anomalies": 131,
+    "normals": 11,
+    "best_pair": "E9>E26",
+    "pair_in_anomalies": 0.565,
+    "pair_in_normals": 0.909,
+    "latency_median_anomalies": 37600.0,
+    "latency_median_normals": 37623.0
+   },
+   {
+    "anomalies": 112,
+    "normals": 7,
+    "best_pair": "E26>E11",
+    "pair_in_anomalies": 0.804,
+    "pair_in_normals": 0.429,
+    "latency_median_anomalies": 37546.0,
+    "latency_median_normals": 37695.0
+   },
+   {
+    "anomalies": 55,
+    "normals": 4,
+    "best_pair": "E4>E2",
+    "pair_in_anomalies": 0.382,
+    "pair_in_normals": 1.0,
+    "latency_median_anomalies": 37426.0,
+    "latency_median_normals": 37255.0
+   },
+   {
+    "anomalies": 7,
+    "normals": 3,
+    "best_pair": "E3>E4",
+    "pair_in_anomalies": 0.571,
+    "pair_in_normals": 1.0,
+    "latency_median_anomalies": 49347.0,
+    "latency_median_normals": 50049.0
+   },
+   {
+    "anomalies": 5,
+    "normals": 3,
+    "best_pair": "E3>E4",
+    "pair_in_anomalies": 0.6,
+    "pair_in_normals": 1.0,
+    "latency_median_anomalies": 49147.0,
+    "latency_median_normals": 49627.0
+   },
+   {
+    "anomalies": 4,
+    "normals": 3,
+    "best_pair": "E3>E4",
+    "pair_in_anomalies": 0.75,
+    "pair_in_normals": 0.333,
+    "latency_median_anomalies": 51338.0,
+    "latency_median_normals": 51472.0
+   },
+   {
+    "anomalies": 3,
+    "normals": 197,
+    "best_pair": "E9>E26",
+    "pair_in_anomalies": 0.0,
+    "pair_in_normals": 0.345,
+    "latency_median_anomalies": 34161.0,
+    "latency_median_normals": 33647.0
+   },
+   {
+    "anomalies": 1,
+    "normals": 1,
+    "best_pair": "E2>E25",
+    "pair_in_anomalies": 1.0,
+    "pair_in_normals": 0.0,
+    "latency_median_anomalies": 37927.0,
+    "latency_median_normals": 37998.0
+   },
+   {
+    "anomalies": 1,
+    "normals": 2,
+    "best_pair": "E26>E11",
+    "pair_in_anomalies": 0.0,
+    "pair_in_normals": 1.0,
+    "latency_median_anomalies": 48337.0,
+    "latency_median_normals": 50163.0
+   }
+  ],
+  "two_stage_val": {
+   "one_stage": {
+    "f1": 0.9974,
+    "precision": 0.9967,
+    "recall": 0.9981,
+    "fp": 9,
+    "fn": 5
+   },
+   "two_stage": {
+    "f1": 0.9974,
+    "precision": 0.9967,
+    "recall": 0.9981,
+    "fp": 9,
+    "fn": 5
+   },
+   "ambiguous_in_val": 94
+  }
+ }
+}

@@ -14,7 +14,7 @@ Este proyecto plantea la detección de anomalías como un problema de **clasific
 
 El objetivo no es reemplazar la revisión humana, sino **priorizarla**: en lugar de examinar cientos de miles de bloques, el equipo de operaciones revisa solo los que el modelo marca como sospechosos.
 
-El planteamiento completo, el estado del arte y los resultados preliminares están en [`Informe-IEEE-Transactions.pdf`](Informe-IEEE-Transactions.pdf) (Avance 1).
+El informe completo (planteamiento, estado del arte, metodología, resultados, discusión y conclusiones) está en [`InformeFinal.pdf`](InformeFinal.pdf).
 
 ## 2. Objetivos
 
@@ -81,7 +81,7 @@ Vienen de los resultados preliminares del Avance 1, donde los 4 modelos obtuvier
 
 ## 5. Interfaz: *LogWatch*
 
-Los resultados se presentan en una aplicación web interactiva hecha con **Vue 3 + Vite**. **Para verla basta abrir `UI/dist/index.html` con doble clic**: es un único archivo, con los datos incluidos, que no necesita servidor ni internet (salvo las fuentes tipográficas). [`UI/mockup.html`](UI/mockup.html) se conserva como el diseño original con datos simulados.
+Los resultados se presentan en una aplicación web interactiva hecha con **Vue 3 + Vite**. **Para verla basta abrir `UI/dist/index.html` con doble clic**: es un único archivo, con los datos incluidos, que no necesita servidor ni internet (salvo las fuentes tipográficas).
 
 **Arquitectura:** el pipeline en Python exporta los resultados a un JSON. Vite lo incrusta, junto con el código y los estilos, en un solo HTML. Nada se entrena en el navegador.
 
@@ -109,7 +109,7 @@ Para que el JSON no sea enorme, se exportan histogramas y curvas ya agregados (n
 Proyecto/
 ├── README.md
 ├── requirements.txt
-├── Informe-IEEE-Transactions.pdf
+├── InformeFinal.pdf         # informe final (IEEE)
 ├── data/                     # no se versiona
 │   ├── raw/                  # HDFS.log, anomaly_label.csv, muestra de Loglizer
 │   └── processed/            # caché: full_pairs.parquet, full_templates.csv, *_matrix.parquet
@@ -122,12 +122,13 @@ Proyecto/
 │   ├── features.py           # 3–4. BlockId, matriz de conteo, TF-IDF
 │   ├── train.py              # 5–7. partición, modelos, desbalance, GridSearchCV
 │   ├── evaluate.py           # 8. métricas, matriz de confusión, curvas
-│   └── export.py             # Fase 5: genera UI/src/data/resultados.json y verifica los modelos
-├── notebooks/
-│   └── eda.ipynb             # análisis exploratorio y figuras para el informe
+│   ├── sequences.py          # Fase 4: pares de eventos consecutivos (variables de orden)
+│   ├── analysis.py           # Fase 4: análisis de errores y alternativas de mejora
+│   ├── export.py             # Fase 5: genera UI/src/data/resultados.json y verifica los modelos
+│   └── figures.py            # Fase 6: figuras del informe
+├── informe/                  # (local, no versionado) informe LaTeX y figuras; se compila en Overleaf
 ├── artifacts/                # modelos entrenados (.joblib), resultados de CV y de test
 └── UI/                       # LogWatch (Vue 3 + Vite)
-    ├── mockup.html           # diseño original con datos simulados
     ├── index.html            # punto de entrada de Vite
     ├── package.json · vite.config.js
     ├── src/
@@ -160,7 +161,10 @@ python src/features.py --source full   # matriz de conteo 575,061 × 29
 python src/validate_parse.py      # compara con la matriz oficial de Loghub
 python src/train.py               # 16 configuraciones con GridSearchCV (~12 min)
 python src/evaluate.py            # métricas en test
+python src/sequences.py           # variables de orden (Fase 4)
+python src/analysis.py            # análisis para la Discusión (~2 min)
 python src/export.py              # genera UI/src/data/resultados.json
+python src/figures.py             # figuras del informe (informe/figuras/)
 
 # Interfaz: solo verla
 open UI/dist/index.html           # o doble clic sobre el archivo
@@ -196,13 +200,17 @@ Cada paso guarda su salida en `data/processed/` o `artifacts/`, así que si algo
   - TF-IDF no cambia nada en árbol ni Naive Bayes (son invariantes a transformaciones por columna). SMOTE no mejora frente a `class_weight` y es más lento.
   - A diferencia de la muestra, los modelos **no** aprenden la misma regla: árbol y RF difieren en 6 bloques, pero LR y NB difieren en 140–420.
   - De los 18 errores del mejor modelo, 11 están en vectores que comparten ambas clases (inevitables por conteo).
-- [ ] **Fase 4 · Análisis:** comparar predicciones entre modelos, cuantificar las anomalías indistinguibles por conteo y redactar conclusiones.
+- [x] **Fase 4 · Análisis:** comparar predicciones entre modelos, cuantificar las anomalías indistinguibles por conteo y redactar conclusiones. `python src/sequences.py` y `python src/analysis.py`.
+  - **Naive Bayes:** la correlación entre eventos *no* explica sus errores (quitarla no cambia nada). 364 de sus 427 falsas alarmas son bloques normales con re-replicación: NB no modela interacciones entre eventos.
+  - **Errores:** las 319 anomalías indistinguibles están en solo 9 vectores (re-replicación, excepciones al servir, error al eliminar). 11 de los 12 errores de Random Forest caen ahí: está en el techo del enfoque por conteo.
+  - **Partición cronológica:** árbol y RF mantienen F1 = 0.998 aunque la tasa de anomalías cambia (3.3 % → 1.5 %).
+  - **Alternativas probadas:** agregar el orden (pares de eventos consecutivos) **empeora** a RF (0.9982 → 0.9948), porque el orden de las réplicas en el log es ruidoso. Un modelo en dos etapas no mejora, y la latencia tampoco separa los casos ambiguos. Todo apunta a ruido en las etiquetas.
 - [x] **Fase 5 · Interfaz:** exportar `resultados.json` y conectar *LogWatch* con los datos reales.
   - `src/export.py` reúne métricas, histogramas, una muestra de 1,041 bloques de test para el triage, los 589 vectores distintos del dataset y los 16 modelos.
   - Los modelos exportados reproducen a scikit-learn (dif. máx. 1e-7). Dos detalles necesarios: los árboles comparan en float32, y los parámetros de TF-IDF y Naive Bayes no se pueden redondear.
   - Métricas y predicciones en JavaScript verificadas contra Python para las 16 configuraciones.
   - Prueba de interacción con Chrome automatizado: presets del simulador, atajos y slider del umbral, paso de Triage a Simulador y cambio de tema. Sin errores de consola.
-- [ ] **Fase 6 · Informe final:** actualizar el informe IEEE con los resultados.
+- [x] **Fase 6 · Informe final:** informe IEEE actualizado con los resultados (en Overleaf); figuras con `python src/figures.py`.
 - [ ] *(Opcional)* Explorar representaciones secuenciales (DeepLog, LogRobust) como trabajo futuro.
 
 ## 9. Referencias principales
