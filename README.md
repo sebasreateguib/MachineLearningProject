@@ -211,7 +211,6 @@ Cada paso guarda su salida en `data/processed/` o `artifacts/`, así que si algo
   - Métricas y predicciones en JavaScript verificadas contra Python para las 16 configuraciones.
   - Prueba de interacción con Chrome automatizado: presets del simulador, atajos y slider del umbral, paso de Triage a Simulador y cambio de tema. Sin errores de consola.
 - [x] **Fase 6 · Informe final:** informe IEEE actualizado con los resultados (en Overleaf); figuras con `python src/figures.py`.
-- [ ] *(Opcional)* Explorar representaciones secuenciales (DeepLog, LogRobust) como trabajo futuro.
 
 ## 9. Referencias principales
 
