@@ -6,3 +6,4 @@ artifacts/models/
 artifacts/quick/
 artifacts/*.parquet
 .ipynb_checkpoints/
+UI/node_modules/

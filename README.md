@@ -81,13 +81,16 @@ Vienen de los resultados preliminares del Avance 1, donde los 4 modelos obtuvier
 
 ## 5. Interfaz: *LogWatch*
 
-Los resultados se presentan en una página web interactiva. El diseño ya está definido en [`UI/mockup.html`](UI/mockup.html), que usa datos simulados.
+Los resultados se presentan en una aplicación web interactiva hecha con **Vue 3 + Vite**. **Para verla basta abrir `UI/dist/index.html` con doble clic**: es un único archivo, con los datos incluidos, que no necesita servidor ni internet (salvo las fuentes tipográficas). [`UI/mockup.html`](UI/mockup.html) se conserva como el diseño original con datos simulados.
 
-**Arquitectura:** el pipeline en Python exporta los resultados a un archivo JSON y la página (HTML + JavaScript, sin servidor) solo lo lee. Nada se entrena en el navegador.
+**Arquitectura:** el pipeline en Python exporta los resultados a un JSON. Vite lo incrusta, junto con el código y los estilos, en un solo HTML. Nada se entrena en el navegador.
 
 ```
-pipeline Python  ──►  UI/data/resultados.json  ──►  UI/index.html
+pipeline Python  ──►  UI/src/data/resultados.json  ──►  npm run build  ──►  UI/dist/index.html
+  (export.py)          (2.9 MB: métricas, modelos)       (Vite + Vue)        (un solo archivo)
 ```
+
+El **simulador** evalúa los 16 modelos entrenados directamente en el navegador (árboles, regresión logística y Naive Bayes exportados a JSON). `export.py` verifica que reproducen a scikit-learn: diferencia máxima de 1e-7 y ninguna predicción distinta.
 
 | Pestaña | Pregunta que responde | Datos que necesita del pipeline |
 |---|---|---|
@@ -95,7 +98,7 @@ pipeline Python  ──►  UI/data/resultados.json  ──►  UI/index.html
 | Modelos | ¿Qué modelo y qué variante funcionan mejor? | Métricas y matrices de confusión de las 16 configuraciones |
 | Umbral | ¿Cuántas alertas acepto a cambio de cuántas anomalías atrapadas? | Histogramas de probabilidad por clase (en bins) y curvas precisión–recall |
 | Triage | ¿Qué bloques revisaría primero el equipo de operaciones? | Muestra de bloques de test con su vector de eventos, etiqueta y probabilidad por modelo |
-| Simulador | ¿Cómo reacciona el modelo si cambio los eventos de un bloque? | Modelos exportados a JSON (coeficientes de LR, estructura de los árboles) para evaluarlos en el navegador |
+| Simulador | ¿Cómo reacciona el modelo si cambio los eventos de un bloque? | Modelos exportados a JSON para evaluarlos en el navegador, y los 589 vectores distintos para avisar si un vector es ambiguo |
 | Datos | ¿Cómo son los datos y qué eventos importan? | Distribución de clases, frecuencias por clase, importancia de variables |
 
 Para que el JSON no sea enorme, se exportan histogramas y curvas ya agregados (no las 115k predicciones individuales), y solo una muestra de bloques para la bandeja de triage.
@@ -119,17 +122,26 @@ Proyecto/
 │   ├── features.py           # 3–4. BlockId, matriz de conteo, TF-IDF
 │   ├── train.py              # 5–7. partición, modelos, desbalance, GridSearchCV
 │   ├── evaluate.py           # 8. métricas, matriz de confusión, curvas
-│   └── export.py             # genera UI/data/resultados.json
+│   └── export.py             # Fase 5: genera UI/src/data/resultados.json y verifica los modelos
 ├── notebooks/
 │   └── eda.ipynb             # análisis exploratorio y figuras para el informe
-├── artifacts/                # modelos entrenados (.joblib) y métricas
-└── UI/
-    ├── mockup.html           # diseño de referencia con datos simulados
-    ├── index.html            # interfaz final
-    └── data/resultados.json  # generado por src/export.py
+├── artifacts/                # modelos entrenados (.joblib), resultados de CV y de test
+└── UI/                       # LogWatch (Vue 3 + Vite)
+    ├── mockup.html           # diseño original con datos simulados
+    ├── index.html            # punto de entrada de Vite
+    ├── package.json · vite.config.js
+    ├── src/
+    │   ├── App.vue           # layout: barra lateral, pestañas, tema
+    │   ├── store.js          # estado global (modelo, variante, umbral)
+    │   ├── lib/              # métricas por umbral, evaluación de modelos, tooltip
+    │   ├── components/       # controles reutilizables
+    │   ├── charts/           # gráficos SVG: histograma, curva PR, puntos, barras
+    │   ├── tabs/             # una vista por pestaña
+    │   └── data/resultados.json   # generado por src/export.py
+    └── dist/index.html       # la app compilada en un solo archivo (se abre con doble clic)
 ```
 
-## 7. Cómo ejecutarlo (planeado)
+## 7. Cómo ejecutarlo
 
 ```bash
 # Entorno
@@ -146,17 +158,23 @@ python src/download.py --full     # descarga muestra + HDFS_v1
 python src/parse.py               # Drain sobre los logs en bruto (~1 min)
 python src/features.py --source full   # matriz de conteo 575,061 × 29
 python src/validate_parse.py      # compara con la matriz oficial de Loghub
-python src/train.py               # 16 configuraciones con GridSearchCV
+python src/train.py               # 16 configuraciones con GridSearchCV (~12 min)
 python src/evaluate.py            # métricas en test
-python src/export.py              # genera UI/data/resultados.json
+python src/export.py              # genera UI/src/data/resultados.json
 
-# Interfaz
-open UI/index.html
+# Interfaz: solo verla
+open UI/dist/index.html           # o doble clic sobre el archivo
+
+# Interfaz: modificarla (requiere Node 18+)
+cd UI
+npm install                       # una sola vez
+npm run dev                       # servidor local con recarga automática
+npm run build                     # regenera UI/dist/index.html
 ```
 
-Cada paso guarda su salida en `data/processed/` o `artifacts/`, así que si algo falla no hay que repetir los pasos anteriores (en especial el parsing).
+Cada paso guarda su salida en `data/processed/` o `artifacts/`, así que si algo falla no hay que repetir los pasos anteriores (en especial el parsing). Si se vuelve a entrenar, hay que correr `export.py` y `npm run build` para que la interfaz muestre los nuevos resultados.
 
-**Dependencias principales:** Python 3.10+, pandas, numpy, scikit-learn, imbalanced-learn, drain3, joblib, matplotlib.
+**Dependencias principales:** Python 3.10+, pandas, numpy, scikit-learn, imbalanced-learn, drain3, joblib, matplotlib. Para modificar la interfaz: Node 18+, Vue 3, Vite.
 
 ## 8. Plan de trabajo
 
@@ -179,7 +197,11 @@ Cada paso guarda su salida en `data/processed/` o `artifacts/`, así que si algo
   - A diferencia de la muestra, los modelos **no** aprenden la misma regla: árbol y RF difieren en 6 bloques, pero LR y NB difieren en 140–420.
   - De los 18 errores del mejor modelo, 11 están en vectores que comparten ambas clases (inevitables por conteo).
 - [ ] **Fase 4 · Análisis:** comparar predicciones entre modelos, cuantificar las anomalías indistinguibles por conteo y redactar conclusiones.
-- [ ] **Fase 5 · Interfaz:** exportar `resultados.json` y conectar *LogWatch* con los datos reales.
+- [x] **Fase 5 · Interfaz:** exportar `resultados.json` y conectar *LogWatch* con los datos reales.
+  - `src/export.py` reúne métricas, histogramas, una muestra de 1,041 bloques de test para el triage, los 589 vectores distintos del dataset y los 16 modelos.
+  - Los modelos exportados reproducen a scikit-learn (dif. máx. 1e-7). Dos detalles necesarios: los árboles comparan en float32, y los parámetros de TF-IDF y Naive Bayes no se pueden redondear.
+  - Métricas y predicciones en JavaScript verificadas contra Python para las 16 configuraciones.
+  - Prueba de interacción con Chrome automatizado: presets del simulador, atajos y slider del umbral, paso de Triage a Simulador y cambio de tema. Sin errores de consola.
 - [ ] **Fase 6 · Informe final:** actualizar el informe IEEE con los resultados.
 - [ ] *(Opcional)* Explorar representaciones secuenciales (DeepLog, LogRobust) como trabajo futuro.
 

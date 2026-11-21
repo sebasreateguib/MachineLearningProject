@@ -26,7 +26,7 @@ Lista de todo lo que hay que modificar en `Informe-IEEE-Transactions.pdf`, secci
 | III Resultados preliminares | Responder la hipótesis abierta; quitar el "trabajo futuro (a)", que ya se hizo | ✅ ✏️ |
 | **IV Resultados** (nueva) | 16 configuraciones, matriz de confusión, análisis de umbral | ✅ (falta la figura de la curva PR) |
 | **V Discusión** (nueva) | Responder las 3 preguntas del proyecto | ✅ casi completa, ⏳ detalles de la Fase 4 |
-| **VI Interfaz LogWatch** (nueva) | Descripción y captura | ⏳ Fase 5 |
+| **VI Interfaz LogWatch** (nueva) | Descripción y captura | ✅ (falta tomar la captura) |
 | **VII Conclusiones** (nueva) | Conclusiones y trabajo futuro | ⏳ Fase 4 |
 
 ---
@@ -280,11 +280,15 @@ Responder las tres preguntas del proyecto:
 
 ---
 
-## VI. Interfaz LogWatch (sección nueva) ⏳ Fase 5
+## VI. Interfaz LogWatch (sección nueva) ✅
 
-- Descripción breve: arquitectura (el pipeline exporta un JSON y una página HTML lo lee) y las seis pestañas.
-- **Figura:** captura de la pestaña *Umbral*, que es la que mejor muestra el compromiso entre precisión y recall.
-- Vincular con la motivación de la Sección I-A: la interfaz materializa la idea de priorizar la revisión humana.
+Texto sugerido:
+
+> Para que los resultados sean utilizables por un equipo de operaciones, se desarrolló LogWatch, una aplicación web en Vue 3. El pipeline exporta a un archivo JSON las métricas de las 16 configuraciones, los histogramas de probabilidad del conjunto de prueba y los modelos entrenados. La aplicación se compila en un único archivo HTML que funciona sin servidor. Tiene seis vistas: resumen, comparación de modelos, ajuste del umbral de decisión, bandeja de revisión (*triage*), simulador de bloques y exploración de los datos. El simulador evalúa los modelos directamente en el navegador; se verificó que reproducen las probabilidades de scikit-learn con una diferencia máxima de 10⁻⁷. Para lograrlo fue necesario emular la conversión a float32 que hacen los árboles de scikit-learn antes de comparar con sus umbrales. El simulador también indica si un vector de conteos es ambiguo, es decir, si aparece en el dataset con ambas etiquetas.
+
+- **Figura:** captura de la pestaña *Umbral*. Muestra el compromiso entre precisión y recall y la frase "si el equipo revisa N bloques, encontrará M anomalías".
+- Vincular con la motivación de la Sección I-A: la interfaz materializa la idea de **priorizar** la revisión humana en lugar de reemplazarla.
+- ✏️ El panel de logs de la pestaña Resumen usa plantillas reales pero un **flujo ilustrativo**. Si aparece en una captura del informe, aclararlo en la leyenda de la figura.
 
 ---
 
